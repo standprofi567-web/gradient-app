@@ -8,7 +8,7 @@ const PMG_WEB_TABS = [
   ['health', 'Здоровье', '<path d="M3 12h4l2.5-6 4 12 2.5-6H21" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>'],
   ['friends', 'Друзья', '<circle cx="9" cy="8.5" r="3.4" fill="none" stroke="currentColor" stroke-width="1.9"/><path d="M3 19.5c.6-3.3 3-5 6-5s5.4 1.7 6 5" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/><path d="M15.5 5.6a3.2 3.2 0 0 1 0 6M17.5 14.7c1.9.6 3.1 2.2 3.5 4.8" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/>']
 ];
-const PMG_WEB_KEYS = ['pmg_devices', 'pmg_auth', 'pmg_cache', 'pmg_status', 'pmg_settings', 'pmg_done', 'pmg_hw_due', 'pmg_own_hw', 'pmg_hw_photos', 'pmg_health', 'pmg_cloud_at', 'pmg_mark_seen', 'pmg_game', 'pmg_profile'];
+const PMG_WEB_KEYS = ['pmg_devices', 'pmg_auth', 'pmg_cache', 'pmg_status', 'pmg_settings', 'pmg_done', 'pmg_hw_due', 'pmg_own_hw', 'pmg_hw_photos', 'pmg_health', 'pmg_cloud_at', 'pmg_mark_seen', 'pmg_game', 'pmg_profile', 'pmg_push_hide'];
 const PMG_WEB_SYNCED = ['pmg_done', 'pmg_hw_due', 'pmg_own_hw', 'pmg_hw_photos', 'pmg_settings', 'pmg_logins'];
 
 const web = { authed: false, tab: 'home', syncing: false, syncErr: null, applying: false, lastSync: 0, pairErr: null, pairing: false, gradeSubj: null, hwView: 'days', showPast: false, enter: true };
@@ -51,6 +51,8 @@ async function pmgWebLoad() {
   pmg.game = s.pmg_game || null;
   pmg.profile = s.pmg_profile || {};
   pmg.devices = s.pmg_devices || null;
+  web.pushHide = !!s.pmg_push_hide;
+  if (typeof pmgPushState === 'function') web.push = await pmgPushState();
   pmgApplyTheme();
 }
 
@@ -183,6 +185,7 @@ function pmgWebHome() {
   const items = pmgHomework();
   const next = (() => { for (let i = 1; i <= 7; i++) { const d = new Date(today.getTime() + i * PMG_DAY); const list = items.filter((x) => x.due && x.due.getTime() === d.getTime()); if (list.length) return { d, list }; } return null; })();
   let out = '<div class="w-hello"><h1>' + hi + (name ? ', ' + pmgEsc(name) : '') + '</h1><p class="muted">' + pmgHumanDay(today) + '</p></div>';
+  out += pmgWebPushCard(false);
   if (web.noSnapshot === false && pmg.status && Date.now() - pmg.status.at > 26 * 3600e3) out += '<div class="w-note">Дневник обновлялся ' + pmgAgo(pmg.status.at) + '. Свежие оценки придут, когда на компьютере будет открыт браузер с Gradient.</div>';
 
   // Домашка на ближайший учебный день
@@ -225,6 +228,21 @@ function pmgWebHome() {
     out += '<button class="card w-steps-card" data-act="w-tab" data-v="health"><div class="w-steps-top"><span>Шаги и этажи</span><b>＋</b></div><small class="muted">Подключи Команду на iPhone — займёт пару минут</small></button>';
   }
   return out;
+}
+// Уведомления о новых оценках на телефон
+function pmgWebPushCard(inSettings) {
+  const p = web.push;
+  if (!web.authed || !p) return '';
+  if (!inSettings && (p.subscribed || web.pushHide)) return '';
+  const bell = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15zM10 20a2 2 0 0 0 4 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>';
+  let body, btn = '';
+  if (p.subscribed) { body = 'Включены на этом телефоне. Новые оценки и домашка придут сюда, пока Gradient работает на компьютере.'; btn = '<button class="btn small" data-act="w-push-test">Проверить</button><button class="btn small ghost" data-act="w-push-off">Выключить</button>'; }
+  else if (p.ios && !p.standalone) body = 'На iPhone уведомления работают, только если Gradient добавлен на экран «Домой»: нажми «Поделиться» → «На экран „Домой“» и открой его оттуда.';
+  else if (!p.supported) body = 'Этот браузер не умеет присылать уведомления. Открой Gradient в Safari (iPhone) или Chrome (Android).';
+  else if (p.permission === 'denied') body = 'Уведомления запрещены в настройках браузера для этого сайта. Разреши их там и вернись сюда.';
+  else { body = 'Новая оценка или домашка — сразу на экран телефона.'; btn = '<button class="btn primary small" data-act="w-push-on">Включить уведомления</button>'; }
+  return '<section class="card w-push' + (inSettings ? ' in-set' : '') + '"><div class="w-push-row"><span class="w-push-ic">' + bell + '</span><div><h3>Уведомления</h3><p class="muted">' + body + '</p></div>' +
+    (!inSettings && !p.subscribed ? '<button class="w-push-x" data-act="w-push-hide" aria-label="Скрыть">×</button>' : '') + '</div>' + (btn ? '<div class="w-push-btns">' + btn + '</div>' : '') + '</section>';
 }
 function pmgShortIso(iso) { const d = pmgDateOf(iso); return d.getDate() + ' ' + PMG_MONTHS[d.getMonth()].slice(0, 3); }
 
@@ -311,7 +329,7 @@ function pmgWebGrades() {
 }
 
 // ---------- Здоровье и отчёты ----------
-function pmgWebHealth() { return '<div class="w-title"><h1>Здоровье</h1></div>' + pmgHealthView(); }
+function pmgWebHealth() { return '<div class="w-title"><h1>Здоровье</h1></div>' + pmgHealthView() + pmgWebPushCard(true); }
 
 function pmgWebReports() {
   let out = '<h2 class="w-h2">Отчёты</h2>';
@@ -333,6 +351,10 @@ function pmgWebBind() {
     switch (act) {
       case 'w-tab': if (web.tab !== v) { web.tab = v; web.enter = true; history.replaceState(null, '', '#' + v); if (v === 'friends') pmgFriendsLoad(); pmgWebRender(); window.scrollTo(0, 0); } else window.scrollTo({ top: 0, behavior: 'smooth' }); return;
       case 'w-sync': pmgWebSync(); return;
+      case 'w-push-on': { t.disabled = true; const r = await pmgPushSubscribe().catch((e) => ({ ok: false, error: e.message })); web.push = await pmgPushState(); pmgToast(r.ok ? 'Готово — сейчас придёт проверочное уведомление' : r.error === 'denied' ? 'Ты не разрешил уведомления' : r.error === 'ios_home' ? 'Сначала добавь Gradient на экран «Домой»' : 'Не получилось: ' + r.error); pmgWebRender(true); return; }
+      case 'w-push-off': await pmgPushUnsubscribe(); web.push = await pmgPushState(); pmgToast('Уведомления выключены'); pmgWebRender(true); return;
+      case 'w-push-test': { const r = await pmgPushTest().catch(() => null); pmgToast(r && r.sent ? 'Отправлено — смотри уведомления' : 'Не дошло. Выключи и включи уведомления заново'); return; }
+      case 'w-push-hide': web.pushHide = true; await pmgStorageSet({ pmg_push_hide: true }); pmgWebRender(true); return;
       case 'w-theme': { const order = ['auto', 'light', 'dark']; pmg.settings.theme = order[(order.indexOf(pmg.settings.theme || 'auto') + 1) % 3]; pmgApplyTheme(); await pmgSaveSettings(); pmgWebRender(true); return; }
       case 'w-claim': { const c = (root.querySelector('[data-act="w-code"]') || {}).value || ''; pmgWebClaim(c); return; }
       case 'w-hwview': web.hwView = v; pmgWebRender(true); return;

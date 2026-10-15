@@ -214,3 +214,52 @@ async function pmgDeviceRevoke(id) {
   await chrome.storage.local.set({ pmg_devices: { ...(s.pmg_devices || {}), at: Date.now(), ...(list || {}) } });
   return { ok: true };
 }
+
+// ---------- Уведомления на телефон (Web Push) ----------
+const PMG_VAPID = 'BFqxvGZaS79YEs3SFQeRlDkU9tjkyD_qdSNJopiy-FQLmIDETUH5HHiqXgL6thK4XMk3gXIn7VmrSoKjLKwua2U';
+// Расширение: разослать новости на телефоны этого аккаунта (сервер шлёт только на свои подписки).
+async function pmgCloudPush(items) {
+  if (!items || !items.length) return { ok: true, sent: 0 };
+  const s = await pmgSession(false);
+  return pmgSbFetch('/functions/v1/push', { token: s.access_token, json: { items: items.slice(0, 5) } });
+}
+async function pmgPushTest() {
+  const s = await pmgSession(false);
+  return pmgSbFetch('/functions/v1/push', { token: s.access_token, json: { test: true } });
+}
+// Сайт: состояние подписки на этом устройстве
+async function pmgPushState() {
+  const ua = navigator.userAgent || '';
+  const ios = /iPhone|iPad/.test(ua);
+  const standalone = !!(window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
+  const supported = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+  let subscribed = false;
+  if (supported) {
+    try { const reg = await navigator.serviceWorker.getRegistration(); const sub = reg && await reg.pushManager.getSubscription(); subscribed = !!sub && Notification.permission === 'granted'; } catch (_) { /* нет */ }
+  }
+  return { supported, ios, standalone, subscribed, permission: supported ? Notification.permission : 'unsupported' };
+}
+function pmgB64u(s) { const p = '='.repeat((4 - s.length % 4) % 4); const b = atob((s + p).replace(/-/g, '+').replace(/_/g, '/')); return Uint8Array.from(b, (c) => c.charCodeAt(0)); }
+async function pmgPushSubscribe() {
+  const st = await pmgPushState();
+  if (!st.supported) return { ok: false, error: st.ios && !st.standalone ? 'ios_home' : 'unsupported' };
+  const perm = await Notification.requestPermission();
+  if (perm !== 'granted') return { ok: false, error: 'denied' };
+  const reg = await navigator.serviceWorker.ready;
+  let sub = await reg.pushManager.getSubscription();
+  if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: pmgB64u(PMG_VAPID) });
+  const j = sub.toJSON();
+  await pmgRpc('push_subscribe', { p_endpoint: j.endpoint, p_p256dh: j.keys.p256dh, p_auth: j.keys.auth, p_device: await pmgDeviceId() });
+  await chrome.storage.local.set({ pmg_push_on: true });
+  pmgPushTest().catch(() => {});
+  return { ok: true };
+}
+async function pmgPushUnsubscribe() {
+  try {
+    const reg = await navigator.serviceWorker.getRegistration();
+    const sub = reg && await reg.pushManager.getSubscription();
+    if (sub) { await pmgRpc('push_unsubscribe', { p_endpoint: sub.endpoint }).catch(() => {}); await sub.unsubscribe(); }
+  } catch (_) { /* ничего */ }
+  await chrome.storage.local.set({ pmg_push_on: false });
+  return { ok: true };
+}

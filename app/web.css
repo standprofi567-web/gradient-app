@@ -208,3 +208,13 @@ body.pmg-page.web-body::before {
 .f-start .btn, .w-main .btn.big { width: 100%; }
 @keyframes crown { 50% { transform: translateY(-3px) rotate(6deg); } }
 .f-main b small { display: inline; }
+
+/* Уведомления */
+.w-push { position: relative; }
+.w-push-row { display: flex; gap: 12px; align-items: flex-start; }
+.w-push-row h3 { margin: 0 0 2px; font-size: 15px; }
+.w-push-row p { margin: 0; font-size: 13.5px; line-height: 1.4; }
+.w-push-ic { flex: none; width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); }
+.w-push-x { position: absolute; top: 6px; right: 6px; width: 32px; height: 32px; border: 0; background: none; color: var(--ink-3, #888); font-size: 20px; cursor: pointer; border-radius: 8px; }
+.w-push-btns { display: flex; gap: 8px; margin-top: 12px; padding-left: 52px; flex-wrap: wrap; }
+.w-push.in-set { margin-top: 16px; }

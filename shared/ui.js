@@ -7,7 +7,7 @@ const PMG_DAY = 86400000;
 const PMG_WEEKDAYS = ['воскресенье', 'понедельник', 'вторник', 'среда', 'четверг', 'пятница', 'суббота'];
 const PMG_WD_SHORT = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
 const PMG_MONTHS = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
-const PMG_DEFAULT_SETTINGS = { threshold: 0.55, studentId: null, hwMode: 'assigned', notify: true, keepAlive: true, theme: 'auto', bg: 'glyphs', v: 2 };
+const PMG_DEFAULT_SETTINGS = { threshold: 0.55, studentId: null, hwMode: 'assigned', notify: true, keepAlive: true, autoTab: true, theme: 'auto', bg: 'glyphs', v: 2 };
 const PMG_LOGO = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M16.95 7.05A7 7 0 1 0 19 12h-6" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><circle cx="16.95" cy="7.05" r="1.9" fill="currentColor"/></svg>';
 const PMG_TABS = [['overview', 'Сводка'], ['pass', 'Pass'], ['friends', 'Друзья'], ['devices', 'Устройства'], ['calendar', 'Календарь'], ['day', 'Уроки'], ['homework', 'Домашка'], ['subjects', 'Предметы'], ['absences', 'Пропуски'], ['finals', 'Итоги']];
 
@@ -175,7 +175,7 @@ function pmgRender(keepScroll, quiet) {
   const period = pmgCurrentPeriod();
   const views = { overview: pmgOverview, pass: pmgPassView, friends: pmgFriendsView, devices: pmgDevicesView, calendar: pmgCalendarView, day: pmgDayView, homework: pmgHomeworkView, subjects: pmgSubjectsView, absences: pmgAbsencesView, finals: pmgFinalsView };
   const body = (views[pmg.tab] || pmgOverview)(period);
-  const overlays = [...panel.querySelectorAll('.lvl-up, .gains-card')];
+  const overlays = [...panel.querySelectorAll('.lvl-up, .gains-card, .streak-scene')];
   panel.innerHTML = pmgBgfx() + pmgHeader(period) + pmgXpLine() + pmgUpdateBar() +
     '<div class="layout"><nav class="tabs" role="tablist"><span class="tab-sel" aria-hidden="true"></span>' +
     PMG_TABS.map(([k, l]) => '<button role="tab" class="tab' + (pmg.tab === k ? ' on' : '') + '" aria-selected="' + (pmg.tab === k) + '" data-act="tab" data-tab="' + k + '">' + l + '</button>').join('') +
@@ -357,7 +357,10 @@ function pmgSettingsBlock() {
     [['glyphs', 'Учебные значки'], ['none', 'Без фона']].map(([v, l]) => '<button class="' + ((pmg.settings.bg || 'glyphs') === v ? 'on' : '') + '" data-act="bg" data-v="' + v + '">' + l + '</button>').join('') + '</div>' +
     '<div class="seg-ctl" role="group" aria-label="Не выходить из дневника"><span>Не выходить из дневника</span>' +
     [[true, 'Да'], [false, 'Нет']].map(([v, l]) => '<button class="' + (pmg.settings.keepAlive === v ? 'on' : '') + '" data-act="keepalive" data-v="' + v + '">' + l + '</button>').join('') + '</div>' +
-    '<p class="muted">Каждые 4 минуты Gradient тихо обращается к дневнику, чтобы вход не сбрасывался из-за бездействия.</p></section>';
+    '<p class="muted">Каждые 4 минуты Gradient тихо обращается к дневнику, чтобы вход не сбрасывался из-за бездействия.</p>' +
+    '<div class="seg-ctl" role="group" aria-label="Сам открывать дневник"><span>Сам открывать дневник</span>' +
+    [[true, 'Да'], [false, 'Нет']].map(([v, l]) => '<button class="' + ((pmg.settings.autoTab !== false) === v ? 'on' : '') + '" data-act="autotab" data-v="' + v + '">' + l + '</button>').join('') + '</div>' +
+    '<p class="muted">Если данные не пришли, Gradient сам откроет дневник в фоновой вкладке, обновит его и закроет, когда получит оценки.</p></section>';
 }
 
 // ---- Расписание дня ----
@@ -1170,6 +1173,7 @@ function pmgBind() {
     if (act === 'theme-cycle') { const order = ['auto', 'light', 'dark']; pmg.settings.theme = order[(order.indexOf(pmg.settings.theme || 'auto') + 1) % 3]; pmgApplyTheme(); await pmgSaveSettings(); return; }
     if (act === 'bg') { pmg.settings.bg = v; pmgApplyTheme(); await pmgSaveSettings(); return; }
     if (act === 'keepalive') { pmg.settings.keepAlive = v === 'true'; await pmgSaveSettings(); return; }
+    if (act === 'autotab') { pmg.settings.autoTab = v === 'true'; await pmgSaveSettings(); return; }
     if (act === 'notify') { pmg.settings.notify = v === 'true'; await pmgSaveSettings(); return; }
     if (act === 'hwmode') { pmg.settings.hwMode = v; await pmgSaveSettings(); return; }
     if (await pmgOwnHwAct(act, t)) return;
@@ -1347,7 +1351,7 @@ async function pmgMountDrawer() {
   if (s.pmg_drawer) pmgOpen();
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape' || !pmg.open || !e.composedPath().includes(host)) return;
-    if (pmgQ('.lvl-up')) pmgLevelClose(); else if (pmgQ('.gains-card')) pmgGainsClose(); else if (pmg.crop) { pmg.crop = null; pmgRender(true, true); }
+    if (pmgQ('.streak-scene')) pmgStreakClose(); else if (pmgQ('.lvl-up')) pmgLevelClose(); else if (pmgQ('.gains-card')) pmgGainsClose(); else if (pmg.crop) { pmg.crop = null; pmgRender(true, true); }
     else if (pmgQ('.report-modal')) pmgCloseReport(); else pmgClose();
   });
 }
@@ -1371,7 +1375,7 @@ async function pmgMountPage(container) {
   pmgGameMsg('login');
   pmgPassPoll();
   if (pmg.tab === 'day') pmgNoteTab();
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { if (pmgQ('.lvl-up')) pmgLevelClose(); else if (pmgQ('.gains-card')) pmgGainsClose(); else if (pmg.crop) { pmg.crop = null; pmgRender(true, true); } } });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { if (pmgQ('.streak-scene')) pmgStreakClose(); else if (pmgQ('.lvl-up')) pmgLevelClose(); else if (pmgQ('.gains-card')) pmgGainsClose(); else if (pmg.crop) { pmg.crop = null; pmgRender(true, true); } } });
   if (pmg.openReportOnLoad && pmg.data) pmgOpenReport('term');
   window.addEventListener('hashchange', () => { const k = location.hash.slice(1); if (PMG_TABS.some(([x]) => x === k) && k !== pmg.tab) { pmg.tab = k; pmgRender(); } });
   // Если данных нет или они старые — просим фон обновить

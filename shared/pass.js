@@ -631,6 +631,7 @@ async function pmgPassAct(act, t) {
     case 'crop-save': return pmgCropSave(), true;
     case 'crop-cancel': pmg.crop = null; pmgRender(true, true); return true;
     case 'gain-close': pmgGainsClose(); return true;
+    case 'streak-close': pmgStreakClose(); return true;
     case 'lvl-close': pmgLevelClose(); return true;
   }
   return false;
@@ -746,10 +747,68 @@ function pmgPassAfterRender() {
   pmgPlayGains();
 }
 
+// ---------- Огонёк дня: сцена «как в Duolingo» при первом заходе за день ----------
+const PMG_STREAK_WEEK = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+function pmgStreakCaption(k) {
+  const n = k.days;
+  const mile = { 1: 'Огонёк зажёгся. Загляни завтра — он подрастёт.', 3: 'Три дня подряд — огонёк разгорается.', 7: 'Целая неделя! Огонёк стал красным.',
+    14: 'Две недели без перерыва. Это уже привычка.', 21: 'Три недели! Огонёк сменил цвет.', 30: 'Месяц подряд. Мало кто так может.', 50: 'Полсотни дней. Легенда класса.', 100: 'Сто дней подряд. Без слов.' };
+  if (mile[n]) return mile[n];
+  if (n % 10 === 0) return n + ' дней — круглое число. Так держать.';
+  if (k.restLeft) return 'Пропустишь один день на неделе — сработает передышка.';
+  if (k.freezes) return 'Если пропустишь день, огонёк спасёт заморозка (' + k.freezes + ').';
+  return 'Передышку на этой неделе уже потратил — заходи завтра обязательно.';
+}
+function pmgStreakDot(st, i) {
+  const ic = st === 'on' || st === 'today' ? pmgFlameSvg(7, 18) : st === 'frozen' ? '<svg viewBox="0 0 20 20" width="16" height="16"><path d="M10 2v16M3 6l14 8M3 14l14-8" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>' :
+    st === 'rest' ? '<b>z</b>' : st === 'miss' ? '<svg viewBox="0 0 20 20" width="12" height="12"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>' : '';
+  return '<li class="sk-d ' + st + '" style="--i:' + i + '"><span class="sk-dot">' + ic + '</span><small>' + PMG_STREAK_WEEK[i] + '</small></li>';
+}
+function pmgStreakScene(k, done) {
+  const panel = pmgQ('.panel'); if (!panel) return done();
+  const n = k.days, from = Math.max(0, n - 1), calm = pmgReduced();
+  const week = (k.week || []).map((d) => ({ ...d }));
+  const todayIdx = week.findIndex((d) => d.iso === pmgIso(new Date()));
+  const el = document.createElement('div');
+  el.className = 'streak-scene' + (calm ? ' calm' : '') + (n >= 7 ? ' hot' : '');
+  const sparks = Array.from({ length: 14 }, (_, i) => '<i style="--a:' + (i * 360 / 14) + 'deg;--d:' + (60 + (i % 3) * 18) + 'px;--c:' + ['#FF5FB8', '#FFE14D', '#D4FF3A', '#2F4BFF'][i % 4] + '"></i>').join('');
+  el.innerHTML = '<div class="sk-box" role="dialog" aria-label="Огонёк: ' + n + ' ' + pmgPlural(n, ['день', 'дня', 'дней']) + ' подряд">' +
+    '<div class="sk-flame"><div class="sk-burst">' + sparks + '</div>' + pmgFlameSvg(Math.max(n, 3), 120) + '</div>' +
+    '<div class="sk-num"><span class="sk-roll"><b>' + from + '</b><b>' + n + '</b></span></div>' +
+    '<div class="sk-label">' + pmgPlural(n, ['день', 'дня', 'дней']) + ' подряд</div>' +
+    (week.length ? '<ol class="sk-week">' + week.map((d, i) => pmgStreakDot(i === todayIdx && !calm ? 'today' : d.st, i)).join('') + '</ol>' : '') +
+    '<p class="sk-cap">' + pmgEsc(pmgStreakCaption(k)) + (k.mult > 1 ? '<br><small>Бонус к опыту ×' + k.mult + '</small>' : '') + '</p>' +
+    '<button class="btn primary" data-act="streak-close">Продолжить</button></div>';
+  panel.appendChild(el);
+  pmg.streakDone = done;
+  if (calm) return;
+  setTimeout(() => el.classList.add('lit'), 650);
+  setTimeout(() => { const d = el.querySelectorAll('.sk-d')[todayIdx]; if (d) { d.className = 'sk-d on pop'; } }, 1150);
+}
+function pmgStreakClose() {
+  const el = pmgQ('.streak-scene');
+  if (el) { el.classList.add('out'); setTimeout(() => el.remove(), 300); }
+  if (pmg.streakDone) { const d = pmg.streakDone; pmg.streakDone = null; setTimeout(d, 320); }
+}
+// Показать сцену, если сегодня огонёк уже засчитан, а сцену ещё не видели. true — сцена показана.
+function pmgMaybeStreak() {
+  const st = pmg.game, k = st && st.view && st.view.streak, today = pmgIso(new Date());
+  if (!k || !k.todayCounted || !k.days || pmg.streakSeenDay === today || pmg.streakBusy || pmg.gainBusy || pmgQ('.lvl-up, .gains-card')) return false;
+  pmg.streakBusy = true;
+  chrome.storage.local.get('pmg_streak_anim').then(({ pmg_streak_anim: seen }) => {
+    pmg.streakSeenDay = today;
+    if (seen === today || !(pmg.open || pmg.mode === 'page')) { pmg.streakBusy = false; pmgPlayGains(); return; }
+    chrome.storage.local.set({ pmg_streak_anim: today });
+    pmgStreakScene(k, () => { pmg.streakBusy = false; pmgPlayGains(); });
+  });
+  return true;
+}
+
 // Очередь начислений: «+60» летит в полоску XP, сводка, новый уровень.
 function pmgPlayGains() {
   const st = pmg.game;
-  if (!st || !st.view || !(pmg.open || pmg.mode === 'page') || pmg.gainBusy) return;
+  if (!st || !st.view || !(pmg.open || pmg.mode === 'page') || pmg.gainBusy || pmg.streakBusy) return;
+  if (pmgMaybeStreak()) return;
   const seen = pmg.gainsSeen || 0;
   const fresh = (st.gains || []).filter((g) => g.t > seen);
   const lv = st.view.level.level;
@@ -762,6 +821,7 @@ function pmgPlayGains() {
     pmg.gainBusy = false;
     pmgGameMsg('ack', { upTo, level: seenLevel && lv > seenLevel ? 0 : lv });
     if (seenLevel && lv > seenLevel) pmgLevelUp(seenLevel, lv);
+    else setTimeout(pmgMaybeStreak, 500);
   };
   const catchup = fresh.find((g) => g.src === 'catchup');
   const total = fresh.reduce((a, g) => a + g.xp, 0);
@@ -863,4 +923,5 @@ function pmgLevelClose() {
   const el = pmgQ('.lvl-up');
   if (el) { el.classList.add('out'); setTimeout(() => el.remove(), 300); }
   if (pmg.lvlTo) { pmgGameMsg('ack', { upTo: pmg.gainsSeen || 0, level: pmg.lvlTo }); if (pmg.game) pmg.game.seenLevel = pmg.lvlTo; pmg.lvlTo = 0; }
+  setTimeout(pmgMaybeStreak, 500);
 }
