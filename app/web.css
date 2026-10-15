@@ -167,3 +167,44 @@ body.pmg-page.web-body::before {
 .w-group-tg { display: flex; align-items: center; justify-content: space-between; width: 100%; border: 0; background: none; padding: 0; margin-bottom: 8px; font: inherit; }
 .w-group-tg h2 { margin: 0 4px !important; }
 .w-pill.bad { background: color-mix(in srgb, var(--m2) 14%, transparent); color: var(--m2); }
+
+/* Друзья */
+.w-h2 { margin: 26px 2px 12px; font: 700 20px/1.2 var(--sans); color: var(--ink); letter-spacing: -.02em; }
+.f-grp { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 0 2px 12px; }
+.f-grp b { color: var(--ink); font-size: 16px; }
+.f-code { margin-left: auto; padding: 5px 11px; border-radius: 10px; border: 1px dashed var(--accent); background: var(--accent-soft); color: var(--accent); font: 700 13px var(--sans); letter-spacing: .08em; }
+.f-modes { margin-bottom: 8px; }
+.f-per { margin-bottom: 12px; }
+.f-podium { display: grid; grid-template-columns: repeat(3, 1fr); align-items: end; gap: 8px; margin: 10px 0 16px; }
+.f-pod { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 14px 6px 10px; border-radius: 18px; background: var(--glass-3); border: 1px solid var(--hair); text-align: center; animation: w-in .5s cubic-bezier(.2, .9, .3, 1.2) both; }
+.f-pod.p1 { padding-top: 22px; background: radial-gradient(100% 80% at 50% 0%, color-mix(in srgb, #F59E0B 22%, transparent), transparent 70%), var(--glass-3); border-color: color-mix(in srgb, #F59E0B 45%, transparent); animation-delay: .08s; }
+.f-pod.p3 { animation-delay: .14s; }
+.f-pod.me { box-shadow: 0 0 0 2px var(--accent); }
+.f-pod b { color: var(--ink); font-size: 13.5px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.f-pod span { font: 700 15px var(--sans); color: var(--ink-2); }
+.f-pod i { position: absolute; top: 6px; left: 8px; font: 700 12px var(--sans); font-style: normal; color: var(--soft); }
+.f-crown { position: absolute; top: -12px; animation: crown 2.4s ease-in-out infinite; }
+.f-list, .f-rest { display: flex; flex-direction: column; gap: 6px; }
+.f-rest { margin-top: 12px; opacity: .7; }
+.f-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 15px; background: var(--glass-3); border: 1px solid var(--hair); animation: w-in .4s calc(var(--i, 0) * 30ms) both; }
+.f-row.me { border-color: color-mix(in srgb, var(--accent) 55%, transparent); background: color-mix(in srgb, var(--accent) 8%, var(--glass-3)); }
+.f-row.stale { opacity: .55; }
+.f-row.muted-row { padding: 8px 12px; }
+.f-rank { width: 20px; text-align: center; font: 700 14px var(--sans); color: var(--soft); flex: none; }
+.f-main { flex: 1; min-width: 0; }
+.f-main b { display: block; color: var(--ink); font-size: 14.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.f-main b small { font-size: 11px; color: var(--accent); font-weight: 700; margin-left: 4px; }
+.f-main small { display: block; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.f-val { font: 700 17px var(--sans); color: var(--ink); letter-spacing: -.02em; white-space: nowrap; }
+.f-duel-btn { width: 34px; height: 34px; border-radius: 10px; border: 1px solid var(--hair-2); background: none; font-size: 16px; color: var(--accent); flex: none; }
+.f-duels { padding: 14px 14px !important; }
+.f-du { padding: 10px 0; border-bottom: 1px solid var(--hair); }
+.f-du:last-child { border-bottom: 0; padding-bottom: 2px; }
+.f-du.pend { display: flex; align-items: center; gap: 10px; }
+.f-du-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 6px; font-size: 14px; color: var(--ink-2); }
+.f-du-top b { color: var(--ink); }
+.f-du-bar { height: 9px; border-radius: 99px; background: color-mix(in srgb, var(--m2) 45%, transparent); overflow: hidden; }
+.f-du-bar i { display: block; height: 100%; background: var(--brand); border-radius: 99px 0 0 99px; animation: w-bar 1s cubic-bezier(.25, .8, .25, 1) both; transform-origin: left; }
+.f-start .btn, .w-main .btn.big { width: 100%; }
+@keyframes crown { 50% { transform: translateY(-3px) rotate(6deg); } }
+.f-main b small { display: inline; }

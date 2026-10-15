@@ -9,11 +9,14 @@ const PMG_PRIVACY = [
   ['core', 'Уровень, XP, огонёк, достижения', 'без этого нет игры', true],
   ['photo', 'Моё фото вместо планеты', 'иначе будет аватар'],
   ['shelf', 'Кубки и значки прошлых сезонов', 'полка в профиле'],
-  ['avg', 'Средний балл за четверть', 'виден только в профиле'],
+  ['steps', 'Мои шаги в рейтинге', 'сумма за день, неделю и месяц'],
+  ['study', 'Домашка и пропуски в рейтинге', 'только сколько сделано вовремя и дней без пропусков'],
+  ['duels', 'Дуэли шагов', 'друзья смогут вызвать тебя на неделю'],
+  ['avg', 'Средний балл за четверть', 'в рейтинге и профиле'],
   ['finals', 'Прогноз итоговых', 'только сколько выходит 5, 4 и 3'],
   ['cheer', 'Уведомления «Подбодрить»', '']
 ];
-const PMG_PRIVACY_DEFAULT = { photo: true, shelf: true, avg: false, finals: false, duels: true, cheer: true };
+const PMG_PRIVACY_DEFAULT = { photo: true, shelf: true, avg: false, finals: false, duels: true, cheer: true, steps: true, study: true };
 
 function pmgGameMsg(op, extra) {
   return new Promise((resolve) => {

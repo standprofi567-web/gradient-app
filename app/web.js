@@ -6,7 +6,7 @@ const PMG_WEB_TABS = [
   ['homework', 'Домашка', '<path d="M6 3.5h9.5L19 7v13.5H6z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/><path d="M9 11.5l2 2 4-4.2M9 17h6" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>'],
   ['grades', 'Оценки', '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/>'],
   ['health', 'Здоровье', '<path d="M3 12h4l2.5-6 4 12 2.5-6H21" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>'],
-  ['reports', 'Отчёты', '<rect x="4" y="3" width="16" height="18" rx="3" fill="none" stroke="currentColor" stroke-width="1.9"/><path d="M8 15l2.5-3 2 2L16 9" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>']
+  ['friends', 'Друзья', '<circle cx="9" cy="8.5" r="3.4" fill="none" stroke="currentColor" stroke-width="1.9"/><path d="M3 19.5c.6-3.3 3-5 6-5s5.4 1.7 6 5" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/><path d="M15.5 5.6a3.2 3.2 0 0 1 0 6M17.5 14.7c1.9.6 3.1 2.2 3.5 4.8" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/>']
 ];
 const PMG_WEB_KEYS = ['pmg_devices', 'pmg_auth', 'pmg_cache', 'pmg_status', 'pmg_settings', 'pmg_done', 'pmg_hw_due', 'pmg_own_hw', 'pmg_hw_photos', 'pmg_health', 'pmg_cloud_at', 'pmg_mark_seen', 'pmg_game', 'pmg_profile'];
 const PMG_WEB_SYNCED = ['pmg_done', 'pmg_hw_due', 'pmg_own_hw', 'pmg_hw_photos', 'pmg_settings', 'pmg_logins'];
@@ -110,9 +110,9 @@ function pmgWebRender(keep) {
   const root = document.getElementById('app');
   const y = window.scrollY;
   if (!web.authed) { root.innerHTML = '<div class="panel web">' + pmgPairScreen() + '</div>'; return; }
-  const views = { home: pmgWebHome, homework: pmgWebHomework, grades: pmgWebGrades, health: pmgWebHealth, reports: pmgWebReports };
+  const views = { home: pmgWebHome, homework: pmgWebHomework, grades: pmgWebGrades, health: pmgWebHealth, friends: pmgWebFriends };
   let body;
-  if (!pmg.data && web.tab !== 'health') body = pmgWebNoData();
+  if (!pmg.data && web.tab !== 'health' && web.tab !== 'friends') body = pmgWebNoData();
   else {
     try { body = (views[web.tab] || pmgWebHome)(); }
     catch (e) { console.error(e); body = '<section class="card"><p class="err">Что-то сломалось при отрисовке: ' + pmgEsc(e.message) + '</p></section>'; }
@@ -306,6 +306,7 @@ function pmgWebGrades() {
     return h + '</article>';
   }).join('') + '</section>';
   if (!stats.length) out += '<section class="card w-empty"><p class="muted">За этот период оценок нет.</p></section>';
+  out += pmgWebReports();
   return out;
 }
 
@@ -313,7 +314,7 @@ function pmgWebGrades() {
 function pmgWebHealth() { return '<div class="w-title"><h1>Здоровье</h1></div>' + pmgHealthView(); }
 
 function pmgWebReports() {
-  let out = '<div class="w-title"><h1>Отчёты</h1></div>';
+  let out = '<h2 class="w-h2">Отчёты</h2>';
   out += pmgWeekReport();
   const term = pmgPickPeriod(pmgPeriods(), new Date());
   out += '<section class="card w-rep"><div class="card-head"><h3>Картинка для родителей</h3></div><p class="muted">Красивый итог с оценками по всем предметам, лучшими днями и сравнением с прошлым годом. Можно сразу отправить в мессенджер.</p>' +
@@ -330,7 +331,7 @@ function pmgWebBind() {
     if (!t || t.tagName === 'INPUT' || t.tagName === 'SELECT' || t.tagName === 'TEXTAREA') return;
     const act = t.dataset.act, v = t.dataset.v;
     switch (act) {
-      case 'w-tab': if (web.tab !== v) { web.tab = v; web.enter = true; history.replaceState(null, '', '#' + v); pmgWebRender(); window.scrollTo(0, 0); } else window.scrollTo({ top: 0, behavior: 'smooth' }); return;
+      case 'w-tab': if (web.tab !== v) { web.tab = v; web.enter = true; history.replaceState(null, '', '#' + v); if (v === 'friends') pmgFriendsLoad(); pmgWebRender(); window.scrollTo(0, 0); } else window.scrollTo({ top: 0, behavior: 'smooth' }); return;
       case 'w-sync': pmgWebSync(); return;
       case 'w-theme': { const order = ['auto', 'light', 'dark']; pmg.settings.theme = order[(order.indexOf(pmg.settings.theme || 'auto') + 1) % 3]; pmgApplyTheme(); await pmgSaveSettings(); pmgWebRender(true); return; }
       case 'w-claim': { const c = (root.querySelector('[data-act="w-code"]') || {}).value || ''; pmgWebClaim(c); return; }
@@ -338,6 +339,15 @@ function pmgWebBind() {
       case 'w-past': web.showPast = !web.showPast; pmgWebRender(true); return;
       case 'w-overdue': web.showOverdue = !web.showOverdue; pmgWebRender(true); return;
       case 'w-period': pmg.periodId = +v; web.gradeSubj = null; pmgWebRender(true); return;
+      case 'f-group': web.gid = v; pmgFriendsLoad(true); pmgWebRender(true); return;
+      case 'f-mode': web.fMode = v; if (v === 'steps' || v === 'xp' || v === 'study' || v === 'avg') pmgFriendsLoad(); pmgWebRender(true); return;
+      case 'f-period': web.fPeriod = v; pmgFriendsLoad(); pmgWebRender(true); return;
+      case 'f-duel': { t.disabled = true; const r = await pmgRpc('duel_challenge', { p_to: v }).catch((e) => ({ ok: false, error: e.message })); pmgToast(r && r.ok ? 'Вызов отправлен — ждём ответа' : pmgFriendErr(r && r.error)); pmgFriendsLoad(); return; }
+      case 'f-duel-yes': case 'f-duel-no': { await pmgRpc('duel_answer', { p_id: +v, p_accept: act === 'f-duel-yes' }).catch(() => {}); pmgFriendsLoad(); return; }
+      case 'f-start': { const nick = ((root.querySelector('[data-act="f-nick"]') || {}).value || '').trim(); if (nick.length < 3) { pmgToast('Ник — от 3 до 16 символов'); return; } const r = await pmgRpc('ensure_profile', { p_nick: nick, p_student_hash: null }).catch((e) => ({ ok: false, error: e.message })); if (r && r.ok) { await pmgRpc('update_profile', { p: { nick } }).catch(() => {}); pmg.profile = { ...(pmg.profile || {}), nick, created: true }; await pmgStorageSet({ pmg_profile: pmg.profile }); pmgFriendsLoad(true); } else pmgToast(pmgFriendErr(r && r.error)); return; }
+      case 'f-join': { const code = ((root.querySelector('[data-act="f-code"]') || {}).value || '').trim().toUpperCase(); const norm = code.includes('-') ? code : code.slice(0, 3) + '-' + code.slice(3); const r = await pmgRpc('join_group', { p_code: norm, p_privacy: null }).catch((e) => ({ ok: false, error: e.message })); if (r && r.ok) { web.gid = r.group.id; pmgFriendsLoad(true); } else pmgToast(pmgFriendErr(r && r.error)); return; }
+      case 'f-create': { const name = ((root.querySelector('[data-act="f-gname"]') || {}).value || '').trim(); if (name.length < 2) { pmgToast('Название — от 2 символов'); return; } const r = await pmgRpc('create_group', { p_name: name }).catch((e) => ({ ok: false, error: e.message })); if (r && r.ok) { web.gid = r.group.id; pmgFriendsLoad(true); } else pmgToast(pmgFriendErr(r && r.error)); return; }
+      case 'f-copy': try { await navigator.clipboard.writeText(v); pmgToast('Код скопирован'); } catch (_) { pmgToast(v); } return;
       case 'w-subj': if (web.tab !== 'grades') { web.tab = 'grades'; web.enter = true; history.replaceState(null, '', '#grades'); } web.gradeSubj = web.gradeSubj === +v ? null : +v; pmgWebRender(true); return;
       case 'report-kind': await pmgOpenReport(v); pmgWebReportShareBtn(); return;
       case 'report-close': pmgCloseReport(); return;
@@ -406,3 +416,146 @@ async function pmgWebShareReport() {
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && Date.now() - web.lastSync > 60e3) pmgWebSync(); });
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 })();
+
+
+// ---------- Друзья: рейтинг шагов, XP, учёбы и дуэли ----------
+function pmgFriendErr(e) {
+  return ({ duel_exists: 'С этим другом дуэль на неделю уже есть.', duel_limit: 'Больше 3 дуэлей в неделю нельзя.', duel_off: 'Этот друг выключил дуэли или скрывает шаги.',
+    not_found: 'Такого кода нет. Проверь буквы и цифры.', closed: 'Вступление в эту группу закрыто.', full: 'В группе уже 30 человек.',
+    too_many_groups: 'Можно состоять максимум в 3 группах.', no_profile: 'Сначала начни игру — придумай ник.' })[e] || ('Не получилось: ' + (e || 'нет связи'));
+}
+
+async function pmgFriendsLoad(groups) {
+  if (!web.authed) return;
+  web.fLoading = true;
+  try {
+    if (groups || !web.groups) {
+      web.groups = await pmgRpc('my_groups', {});
+      const prof = (pmg.profile && pmg.profile.created) || (web.groups && web.groups.length);
+      if (prof && !(pmg.profile && pmg.profile.created)) { pmg.profile = { ...(pmg.profile || {}), created: true }; }
+    }
+    const gs = web.groups || [];
+    if (!gs.some((g) => g.id === web.gid)) web.gid = gs.length ? gs[0].id : null;
+    if (web.gid) {
+      const per = web.fMode === 'steps' || !web.fMode ? (web.fPeriod || 'week') : 'week';
+      const [board, duels] = await Promise.all([pmgRpc('group_board', { p_group: web.gid, p_period: per }), pmgRpc('my_duels', {})]);
+      const paths = ((board && board.players) || []).map((p) => p.photo).concat(((duels && duels.duels) || []).map((d) => d.rival && d.rival.photo)).filter(Boolean);
+      const photos = paths.length ? await pmgPhotos(paths).catch(() => ({})) : {};
+      ((board && board.players) || []).forEach((p) => { p.photoUrl = p.photo ? photos[p.photo] || null : null; });
+      ((duels && duels.duels) || []).forEach((d) => { if (d.rival) d.rival.photoUrl = d.rival.photo ? photos[d.rival.photo] || null : null; });
+      web.board = board; web.boardPer = per; web.duels = duels;
+    }
+    web.fErr = null;
+  } catch (e) { web.fErr = String(e.message || e); }
+  web.fLoading = false;
+  if (web.tab === 'friends') pmgWebRender(true);
+}
+
+function pmgWebFriends() {
+  let out = '<div class="w-title"><h1>Друзья</h1></div>';
+  if (!web.groups && !web.fErr) { if (!web.fLoading) pmgFriendsLoad(true); return out + '<section class="card w-empty"><div class="loader"><span></span><span></span><span></span></div></section>'; }
+  if (web.fErr && !web.groups) return out + '<section class="card w-empty"><p class="err">Нет связи с сервером.</p><button class="btn" data-act="w-sync">Повторить</button></section>';
+  const gs = web.groups || [];
+  if (!(pmg.profile && pmg.profile.created) && !gs.length) {
+    const first = pmg.data && pmg.data.student ? pmg.data.student.name.split(/\s+/)[0] : '';
+    return out + '<section class="card f-start"><h3>Рейтинг с друзьями</h3><p class="muted">Шаги, XP и учёба недели — в общем рейтинге группы. Друзья видят только итоги: ни оценок, ни домашки, ни фото.</p>' +
+      '<label class="field"><span>Твой ник</span><input class="in" data-act="f-nick" maxlength="16" value="' + pmgEsc(first) + '"></label><button class="btn primary big" data-act="f-start">Начать</button></section>';
+  }
+  if (!gs.length) {
+    return out + '<section class="card"><h3>Вступить по коду</h3><p class="muted">Код вида KOT-482 даёт создатель группы.</p><input class="in w-code" data-act="f-code" maxlength="7" placeholder="ABC-123"><button class="btn primary big" data-act="f-join">Вступить</button></section>' +
+      '<section class="card"><h3>Или создай свою</h3><input class="in" data-act="f-gname" maxlength="40" placeholder="Например, 8Б и друзья"><button class="btn big" data-act="f-create" style="margin-top:10px">Создать группу</button></section>';
+  }
+  const g = gs.find((x) => x.id === web.gid) || gs[0];
+  if (gs.length > 1) out += '<div class="w-periods">' + gs.map((x) => '<button class="w-chipbtn' + (x.id === g.id ? ' on' : '') + '" data-act="f-group" data-v="' + x.id + '">' + pmgEsc(x.name) + '</button>').join('') + '</div>';
+  out += '<div class="f-grp"><b>' + pmgEsc(g.name) + '</b><span class="muted small">' + g.members + ' ' + pmgPlural(g.members, ['участник', 'участника', 'участников']) + '</span>' +
+    (g.code ? '<button class="f-code" data-act="f-copy" data-v="' + g.code + '">' + g.code + '</button>' : '') + '</div>';
+  out += pmgDuelsBlock();
+  const mode = web.fMode || 'steps';
+  const players = (web.board && web.board.players) || [];
+  const anyAvg = players.some((p) => p.avg != null);
+  out += '<div class="seg-ctl f-modes">' + [['steps', 'Шаги'], ['xp', 'XP'], ['study', 'Учёба']].concat(anyAvg ? [['avg', 'Средний']] : []).map(([k, l]) => '<button class="' + (mode === k ? 'on' : '') + '" data-act="f-mode" data-v="' + k + '">' + l + '</button>').join('') + '</div>';
+  if (mode === 'steps') out += '<div class="seg-ctl mini f-per">' + [['day', 'Сегодня'], ['week', 'Неделя'], ['month', 'Месяц']].map(([k, l]) => '<button class="' + ((web.fPeriod || 'week') === k ? 'on' : '') + '" data-act="f-period" data-v="' + k + '">' + l + '</button>').join('') + '</div>';
+  out += pmgBoardList(players, mode);
+  return out;
+}
+
+function pmgBoardValue(p, mode) {
+  if (mode === 'steps') return p.steps_on && p.steps != null ? p.steps : null;
+  if (mode === 'xp') return p.xp_week || 0;
+  if (mode === 'avg') return p.avg != null ? +p.avg : null;
+  if (mode === 'study') {
+    const s = p.study; if (!s || !s.hw) return null;
+    const mon = pmgToday(); mon.setDate(mon.getDate() - ((mon.getDay() + 6) % 7));
+    const thisWeek = s.week === pmgIso(mon);
+    if (!thisWeek) return null;
+    const hw = s.hw.total ? s.hw.done / s.hw.total : null, na = s.noabs && s.noabs.total ? s.noabs.ok / s.noabs.total : null;
+    if (hw == null && na == null) return null;
+    return Math.round(((hw == null ? na : hw) * 0.6 + (na == null ? hw : na) * 0.4) * 100);
+  }
+  return null;
+}
+
+function pmgBoardList(players, mode) {
+  const rows = players.map((p) => ({ p, v: pmgBoardValue(p, mode) }));
+  const ranked = rows.filter((r) => r.v != null && (mode !== 'steps' || r.v > 0)).sort((a, b) => b.v - a.v);
+  const rest = rows.filter((r) => !ranked.includes(r));
+  if (!ranked.length && !rest.length) return '<section class="card w-empty"><p class="muted">В группе пока никого.</p></section>';
+  const fmt = (r) => mode === 'steps' ? pmgFmtInt(r.v) : mode === 'xp' ? pmgFmtInt(r.v) + ' XP' : mode === 'avg' ? pmgFmtAvg(r.v) : r.v + '%';
+  const sub = (r) => {
+    const p = r.p;
+    if (mode === 'steps') {
+      const ch = p.steps_prev ? Math.round((p.steps / p.steps_prev - 1) * 100) : null;
+      const bits = [];
+      if (p.goal_streak) bits.push('🔥 цель ' + p.goal_streak + ' ' + pmgPlural(p.goal_streak, ['день', 'дня', 'дней']) + ' подряд');
+      if (ch != null && isFinite(ch)) bits.push((ch >= 0 ? '▲ ' : '▼ ') + Math.abs(ch) + '%');
+      if (p.floors) bits.push(p.floors + ' эт.');
+      return bits.join(' · ') || 'уровень ' + p.level;
+    }
+    if (mode === 'study') { const s = p.study; return 'домашка ' + (s.hw ? s.hw.done + '/' + s.hw.total : '—') + ' · без пропусков ' + (s.noabs ? s.noabs.ok + '/' + s.noabs.total : '—'); }
+    if (mode === 'xp') return 'уровень ' + p.level + (p.streak ? ' · огонёк ' + p.streak : '');
+    return 'средний за четверть';
+  };
+  const me = players.find((p) => p.me);
+  let h = '';
+  // Пьедестал
+  if (ranked.length >= 2) {
+    const top = ranked.slice(0, 3), order = top.length === 3 ? [top[1], top[0], top[2]] : [top[1], top[0]];
+    h += '<section class="f-podium">' + order.map((r) => {
+      const place = ranked.indexOf(r) + 1;
+      return '<div class="f-pod p' + place + (r.p.me ? ' me' : '') + '">' + (place === 1 ? '<span class="f-crown">' + pmgReactionIcon('crown', 22) + '</span>' : '') + pmgAvatar(r.p, place === 1 ? 72 : 58) +
+        '<b>' + pmgEsc(r.p.nick) + '</b><span>' + fmt(r) + '</span><i>' + place + '</i></div>';
+    }).join('') + '</section>';
+  }
+  h += '<section class="f-list">' + ranked.map((r, i) => {
+    const p = r.p, stale = mode === 'steps' && p.health_at && Date.now() - new Date(p.health_at) > 2 * 864e5;
+    const canDuel = mode === 'steps' && !p.me && me && me.steps_on && p.steps_on && !(web.duels && (web.duels.duels || []).some((d) => d.rival && d.rival.id === p.id && d.week_start === web.duels.week_start));
+    return '<div class="f-row' + (p.me ? ' me' : '') + (stale ? ' stale' : '') + '" style="--i:' + i + '"><span class="f-rank">' + (i + 1) + '</span>' + pmgAvatar(p, 40) +
+      '<div class="f-main"><b>' + pmgEsc(p.nick) + (p.me ? ' <small>ты</small>' : '') + '</b><small class="muted">' + (stale ? 'шаги не обновлялись ' + pmgAgo(p.health_at) : sub(r)) + '</small></div>' +
+      '<span class="f-val">' + fmt(r) + '</span>' + (canDuel ? '<button class="f-duel-btn" data-act="f-duel" data-v="' + p.id + '" aria-label="Вызвать на дуэль">⚔</button>' : '') + '</div>';
+  }).join('') + '</section>';
+  if (rest.length) {
+    const why = mode === 'steps' ? (r) => (!r.p.steps_on ? 'скрывает шаги' : 'шагов пока нет') : mode === 'study' ? () => 'нет данных за неделю' : () => 'скрыто';
+    h += '<section class="f-rest">' + rest.map((r) => '<div class="f-row muted-row">' + pmgAvatar(r.p, 32) + '<div class="f-main"><b>' + pmgEsc(r.p.nick) + (r.p.me ? ' <small>ты</small>' : '') + '</b><small class="muted">' + why(r) + '</small></div></div>').join('') + '</section>';
+  }
+  if (mode === 'steps' && me && !me.steps_on) h += '<p class="muted small">Твои шаги скрыты от друзей — включи галочку «Мои шаги в рейтинге» в профиле в расширении.</p>';
+  if (mode === 'study') h += '<p class="muted small">Учёба недели: 60% — домашка, отмеченная вовремя, 40% — дни без пропусков. Считается в расширении на компьютере.</p>';
+  return h;
+}
+
+function pmgDuelsBlock() {
+  const ds = (web.duels && web.duels.duels) || [];
+  if (!ds.length) return '';
+  const wk = web.duels.week_start;
+  const left = (() => { const end = pmgDateOf(wk); end.setDate(end.getDate() + 7); return Math.max(0, Math.round((end - pmgToday()) / 864e5)); })();
+  return '<section class="card f-duels"><div class="card-head"><h3>Дуэли шагов</h3><span class="muted small">неделя · осталось ' + left + ' ' + pmgPlural(left, ['день', 'дня', 'дней']) + '</span></div>' + ds.map((d) => {
+    const r = d.rival || {};
+    if (d.status === 'pending') {
+      return '<div class="f-du pend">' + pmgAvatar(r, 36) + '<div class="f-main"><b>' + pmgEsc(r.nick || '') + '</b><small class="muted">' + (d.mine ? 'ждём ответа' : 'вызывает тебя на неделю шагов') + '</small></div>' +
+        (d.mine ? '<button class="btn small" data-act="f-duel-no" data-v="' + d.id + '">Отменить</button>' : '<button class="btn small primary" data-act="f-duel-yes" data-v="' + d.id + '">Принять</button><button class="btn small" data-act="f-duel-no" data-v="' + d.id + '">Нет</button>') + '</div>';
+    }
+    const a = d.me_steps || 0, b = d.rival_steps || 0, tot = Math.max(1, a + b), past = d.week_start !== wk;
+    const res = past && d.settled ? (d.draw ? 'Ничья · +50 XP' : d.winner_me ? 'Победа · +150 XP' : 'Поражение · +50 XP') : (a > b ? 'ты впереди на ' + pmgFmtInt(a - b) : a < b ? 'отстаёшь на ' + pmgFmtInt(b - a) : 'поровну');
+    return '<div class="f-du"><div class="f-du-top"><span>Ты <b>' + pmgFmtInt(a) + '</b></span><span class="muted small">' + res + '</span><span><b>' + pmgFmtInt(b) + '</b> ' + pmgEsc(r.nick || '') + '</span></div>' +
+      '<div class="f-du-bar"><i style="width:' + (a / tot * 100).toFixed(1) + '%"></i></div></div>';
+  }).join('') + '</section>';
+}
