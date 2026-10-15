@@ -1,15 +1,15 @@
-// Gradient на телефоне: главное из расширения — оценки, домашка (в том числе своя, с фото), здоровье и отчёты.
-// Данные приходят с сервера: снимок дневника присылает расширение, шаги — Команда на iPhone.
+// Gradient на телефоне: главное из расширения — оценки, домашка (в том числе своя, с фото), отчёты и Gradient Pass.
+// Данные приходят с сервера: снимок дневника присылает расширение. Очки Pass телефон считает тем же кодом, что и расширение.
 
 const PMG_WEB_TABS = [
   ['home', 'Главная', '<path d="M4 11.2 12 4l8 7.2V19a1.5 1.5 0 0 1-1.5 1.5H15v-5.5h-6v5.5H5.5A1.5 1.5 0 0 1 4 19z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/>'],
   ['homework', 'Домашка', '<path d="M6 3.5h9.5L19 7v13.5H6z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/><path d="M9 11.5l2 2 4-4.2M9 17h6" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>'],
   ['grades', 'Оценки', '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/>'],
-  ['health', 'Здоровье', '<path d="M3 12h4l2.5-6 4 12 2.5-6H21" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>'],
+  ['pass', 'Pass', '<path d="M4 7.5A1.5 1.5 0 0 1 5.5 6h13A1.5 1.5 0 0 1 20 7.5V10a2 2 0 0 0 0 4v2.5a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 16.5V14a2 2 0 0 0 0-4z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/><path d="m12 9 .9 1.9 2.1.3-1.5 1.4.4 2.1-1.9-1-1.9 1 .4-2.1-1.5-1.4 2.1-.3z" fill="currentColor"/>'],
   ['friends', 'Друзья', '<circle cx="9" cy="8.5" r="3.4" fill="none" stroke="currentColor" stroke-width="1.9"/><path d="M3 19.5c.6-3.3 3-5 6-5s5.4 1.7 6 5" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/><path d="M15.5 5.6a3.2 3.2 0 0 1 0 6M17.5 14.7c1.9.6 3.1 2.2 3.5 4.8" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/>']
 ];
-const PMG_WEB_KEYS = ['pmg_devices', 'pmg_auth', 'pmg_cache', 'pmg_status', 'pmg_settings', 'pmg_done', 'pmg_hw_due', 'pmg_own_hw', 'pmg_hw_photos', 'pmg_health', 'pmg_cloud_at', 'pmg_mark_seen', 'pmg_game', 'pmg_profile', 'pmg_push_hide'];
-const PMG_WEB_SYNCED = ['pmg_done', 'pmg_hw_due', 'pmg_own_hw', 'pmg_hw_photos', 'pmg_settings', 'pmg_logins'];
+const PMG_WEB_KEYS = ['pmg_devices', 'pmg_auth', 'pmg_cache', 'pmg_status', 'pmg_settings', 'pmg_done', 'pmg_hw_due', 'pmg_own_hw', 'pmg_hw_photos', 'pmg_health', 'pmg_cloud_at', 'pmg_mark_seen', 'pmg_game', 'pmg_profile', 'pmg_push_hide', 'pmg_groups', 'pmg_boards'];
+const PMG_WEB_SYNCED = ['pmg_done', 'pmg_hw_due', 'pmg_own_hw', 'pmg_hw_photos', 'pmg_settings', 'pmg_logins', 'pmg_quests', 'pmg_wquests', 'pmg_actions', 'pmg_mark_seen', 'pmg_profile'];
 
 const web = { authed: false, tab: 'home', syncing: false, syncErr: null, applying: false, lastSync: 0, pairErr: null, pairing: false, gradeSubj: null, hwView: 'days', showPast: false, enter: true };
 pmg.mode = 'page';
@@ -21,7 +21,12 @@ async function pmgWebMessage(msg) {
   if (msg.kind === 'pmg-sync') { await pmgWebSync(); return { ok: !web.syncErr }; }
   if (msg.kind !== 'pmg-game') return { ok: true };
   switch (msg.op) {
-    case 'login': return { ok: true };
+    case 'login': {
+      const lg = (await pmgStorageGet('pmg_logins')).pmg_logins || {}, today = pmgIso(new Date());
+      if (!lg[today]) { lg[today] = Date.now(); await pmgStorageSet({ pmg_logins: lg }); }
+      if (pmg.data) await pmgGameRun({ push: true });
+      return { ok: true };
+    }
     case 'health-key': return pmgHealthNewKey();
     case 'health-pull': return pmgHealthPull();
     case 'devices': { const r = await pmgDevicesSync('web'); await pmgWebLoad(); return r; }
@@ -30,6 +35,8 @@ async function pmgWebMessage(msg) {
     case 'hw-photo-upload': return { ok: true, path: await pmgHwPhotoUpload(msg.dataUrl) };
     case 'hw-photo-urls': return { ok: true, urls: await pmgHwPhotoUrls(msg.paths || [], false) };
   }
+  // Всё остальное про Pass — тот же код, что в расширении
+  if (typeof pmgGameMessage === 'function') return pmgGameMessage(msg);
   return { ok: false, error: 'unknown_op' };
 }
 window.pmgWebMessage = pmgWebMessage;
@@ -51,6 +58,7 @@ async function pmgWebLoad() {
   pmg.game = s.pmg_game || null;
   pmg.profile = s.pmg_profile || {};
   pmg.devices = s.pmg_devices || null;
+  pmg.groups = s.pmg_groups || []; pmg.boards = s.pmg_boards || {};
   web.pushHide = !!s.pmg_push_hide;
   if (typeof pmgPushState === 'function') web.push = await pmgPushState();
   pmgApplyTheme();
@@ -68,12 +76,27 @@ async function pmgWebSync() {
     if (r.devices && r.devices.revoked) { web.applying = false; web.syncing = false; await pmgWebSignOut(true, 'Этот телефон отключили на компьютере. Чтобы вернуть, подключи его заново кодом.'); return; }
   } catch (e) { web.syncErr = String(e.message || e); }
   if (/signed_out|invalid|refresh/i.test(web.syncErr || '')) { await pmgWebSignOut(true); return; }
+  try { await pmgGameRun({ push: true }); } catch (e) { console.warn('pass', e); }
   await pmgWebLoad();
   web.applying = false; web.syncing = false; web.lastSync = Date.now();
   pmgWebRender(true);
 }
 
 let pmgWebPushTimer = null;
+// Pass: состояние игры меняется — перерисовать и показать новые очки
+let pmgWebGameTimer = null;
+chrome.storage.onChanged.addListener((c) => {
+  if (c.pmg_game) {
+    const old = pmg.game; pmg.game = c.pmg_game.newValue || null;
+    const vo = old && old.view, vn = pmg.game && pmg.game.view;
+    if (web.tab === 'pass' && (!vo || !vn || vo.xp !== vn.xp || vo.level.level !== vn.level.level || JSON.stringify(vo.quests) !== JSON.stringify(vn.quests) || vo.streak.days !== vn.streak.days)) pmgWebRender(true);
+    if (web.tab === 'pass') pmgPlayGains();
+  }
+  if (c.pmg_profile) { pmg.profile = c.pmg_profile.newValue || {}; if (web.tab === 'pass') pmgWebRender(true); }
+  if (c.pmg_groups) pmg.groups = c.pmg_groups.newValue || [];
+  if (c.pmg_boards) pmg.boards = c.pmg_boards.newValue || {};
+  if (!web.applying && pmg.data && (c.pmg_done || c.pmg_actions)) { clearTimeout(pmgWebGameTimer); pmgWebGameTimer = setTimeout(() => pmgGameRun({ push: true }).catch(() => {}), 600); }
+});
 chrome.storage.onChanged.addListener((c) => {
   if (web.applying) return;
   if (PMG_WEB_SYNCED.some((k) => c[k])) {
@@ -112,19 +135,21 @@ function pmgWebRender(keep) {
   const root = document.getElementById('app');
   const y = window.scrollY;
   if (!web.authed) { root.innerHTML = '<div class="panel web">' + pmgPairScreen() + '</div>'; return; }
-  const views = { home: pmgWebHome, homework: pmgWebHomework, grades: pmgWebGrades, health: pmgWebHealth, friends: pmgWebFriends };
+  const views = { home: pmgWebHome, homework: pmgWebHomework, grades: pmgWebGrades, pass: pmgWebPass, friends: pmgWebFriends, me: pmgWebMe };
   let body;
-  if (!pmg.data && web.tab !== 'health' && web.tab !== 'friends') body = pmgWebNoData();
+  if (!pmg.data && web.tab !== 'me' && web.tab !== 'friends') body = pmgWebNoData();
   else {
     try { body = (views[web.tab] || pmgWebHome)(); }
     catch (e) { console.error(e); body = '<section class="card"><p class="err">Что-то сломалось при отрисовке: ' + pmgEsc(e.message) + '</p></section>'; }
   }
   const keepModal = root.querySelector('.report-modal');
+  const keepFx = [...root.querySelectorAll('.gains-card, .lvl-up, .streak-scene')];
   root.innerHTML = '<div class="panel web">' + pmgWebHeader() +
     '<main class="w-main' + (web.enter ? ' enter' : '') + '" id="w-main">' + body + '</main>' +
     (web.tab === 'homework' && pmg.data ? '<button class="w-fab" data-act="own-new" aria-label="Добавить своё задание"><svg viewBox="0 0 24 24" width="26" height="26"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button>' : '') +
-    pmgWebNav() + pmgOwnHwForm() + pmgPhotoViewer() + '</div>';
+    pmgWebNav() + pmgOwnHwForm() + pmgPhotoViewer() + (web.tab === 'pass' ? pmgCropModal() : '') + '</div>';
   if (keepModal) root.querySelector('.panel').appendChild(keepModal);
+  keepFx.forEach((el) => root.querySelector('.panel').appendChild(el));
   web.enter = false;
   if (keep) window.scrollTo(0, y);
   pmgWebAfter();
@@ -151,7 +176,7 @@ function pmgWebHeader() {
   const stale = st && st.at && Date.now() - st.at > 26 * 3600e3;
   return '<header class="w-head"><div class="brand"><span class="brand-mark">' + PMG_LOGO + '</span><div><span class="brand-name">Gradient</span>' +
     '<div class="who">' + (web.syncing ? 'обновляю…' : web.syncErr ? '<span class="err">нет связи</span>' : when ? '<span class="' + (stale ? 'stale' : '') + '">дневник ' + when + '</span>' : '') + '</div></div></div>' +
-    '<div class="head-tools"><button class="icon-btn" data-act="w-theme" aria-label="Тема">' + pmgIcon(t === 'dark' ? 'moon' : t === 'light' ? 'sun' : 'auto') + '</button>' +
+    '<div class="head-tools"><button class="icon-btn' + (web.tab === 'me' ? ' on' : '') + '" data-act="w-tab" data-v="me" aria-label="Настройки"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.9"/><path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M5.5 18.5l1.7-1.7M16.8 7.2l1.7-1.7" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg></button><button class="icon-btn" data-act="w-theme" aria-label="Тема">' + pmgIcon(t === 'dark' ? 'moon' : t === 'light' ? 'sun' : 'auto') + '</button>' +
     '<button class="icon-btn' + (web.syncing ? ' spin' : '') + '" data-act="w-sync" aria-label="Обновить">' + pmgIcon('refresh') + '</button></div></header>';
 }
 
@@ -168,12 +193,12 @@ function pmgWebNoData() {
 // ---------- Вход ----------
 function pmgPairScreen() {
   return '<div class="w-pair"><div class="w-pair-logo"><span class="brand-mark big">' + PMG_LOGO.replace('width="18" height="18"', 'width="34" height="34"') + '</span></div>' +
-    '<h1>Gradient</h1><p class="muted">Оценки, домашка, шаги и отчёты — на телефоне.</p>' +
+    '<h1>Gradient</h1><p class="muted">Оценки, домашка, отчёты и Gradient Pass — на телефоне.</p>' +
     '<section class="card"><h3>Подключи телефон</h3><ol class="w-steps"><li>На компьютере открой Gradient → вкладка <b>«Устройства»</b>.</li><li>Нажми <b>«Подключить телефон»</b>.</li><li>Наведи камеру телефона на QR-код — или введи код ниже.</li></ol>' +
     '<input class="in w-code" data-act="w-code" inputmode="text" autocapitalize="characters" autocomplete="one-time-code" maxlength="9" placeholder="ABCD-1234">' +
     (web.pairErr ? '<p class="err">' + pmgEsc(web.pairErr) + '</p>' : '') +
     '<button class="btn primary big" data-act="w-claim"' + (web.pairing ? ' disabled' : '') + '>' + (web.pairing ? 'Подключаю…' : 'Подключить') + '</button></section>' +
-    '<p class="muted small w-foot">Пароль не нужен: телефон получает доступ только к твоему аккаунту Gradient. Выйти можно внизу вкладки «Здоровье».</p></div>';
+    '<p class="muted small w-foot">Пароль не нужен: телефон получает доступ только к твоему аккаунту Gradient. Выйти можно в настройках (шестерёнка сверху).</p></div>';
 }
 
 // ---------- Главная ----------
@@ -200,7 +225,7 @@ function pmgWebHome() {
   const marks = pmg.data.marks.slice().map((m) => ({ ...m, g: pmg.seen[m.id] || pmgIso(pmgParseDate(m.date)) })).sort((a, b) => (b.g > a.g ? 1 : b.g < a.g ? -1 : b.id - a.id)).slice(0, 8);
   if (marks.length) {
     out += '<section class="card w-marks"><div class="card-head"><h3>Последние оценки</h3><button class="link" data-act="w-tab" data-v="grades">Все →</button></div><ul class="w-mlist">' +
-      marks.map((m, i) => '<li style="--i:' + i + '">' + pmgMarkChip(m.value) + '<span class="w-ms">' + pmgEsc(m.subject) + '<small>' + pmgEsc((m.typeName || '').toLowerCase()) + '</small></span><span class="muted small">' + pmgShortIso(m.g) + '</span></li>').join('') + '</ul></section>';
+      marks.map((m, i) => '<li style="--i:' + i + '">' + pmgMarkChip(m.value) + '<span class="w-ms">' + pmgEsc(m.subject) + '<small>' + pmgEsc((m.typeName || '').toLowerCase()) + '</small></span><span class="muted small">' + pmgWebShortIso(m.g) + '</span></li>').join('') + '</ul></section>';
   }
 
   // Четверть
@@ -222,10 +247,8 @@ function pmgWebHome() {
   const tr = hd.find((r) => r.day === pmgIso(today));
   if (hd.length) {
     const goal = pmgHealthGoal(), st = tr && tr.steps != null ? tr.steps : 0;
-    out += '<button class="card w-steps-card" data-act="w-tab" data-v="health"><div class="w-steps-top"><span>Шаги сегодня</span><b data-count-int="' + st + '">' + pmgFmtInt(st) + '</b></div>' +
+    out += '<button class="card w-steps-card" data-act="w-tab" data-v="friends"><div class="w-steps-top"><span>Шаги сегодня</span><b data-count-int="' + st + '">' + pmgFmtInt(st) + '</b></div>' +
       '<div class="xpbar"><i style="width:' + Math.min(100, st / goal * 100).toFixed(1) + '%"></i></div><small class="muted">цель ' + pmgFmtInt(goal) + (tr && tr.floors != null ? ' · ' + tr.floors + ' ' + pmgPlural(tr.floors, ['этаж', 'этажа', 'этажей']) : '') + '</small></button>';
-  } else {
-    out += '<button class="card w-steps-card" data-act="w-tab" data-v="health"><div class="w-steps-top"><span>Шаги и этажи</span><b>＋</b></div><small class="muted">Подключи Команду на iPhone — займёт пару минут</small></button>';
   }
   return out;
 }
@@ -244,7 +267,7 @@ function pmgWebPushCard(inSettings) {
   return '<section class="card w-push' + (inSettings ? ' in-set' : '') + '"><div class="w-push-row"><span class="w-push-ic">' + bell + '</span><div><h3>Уведомления</h3><p class="muted">' + body + '</p></div>' +
     (!inSettings && !p.subscribed ? '<button class="w-push-x" data-act="w-push-hide" aria-label="Скрыть">×</button>' : '') + '</div>' + (btn ? '<div class="w-push-btns">' + btn + '</div>' : '') + '</section>';
 }
-function pmgShortIso(iso) { const d = pmgDateOf(iso); return d.getDate() + ' ' + PMG_MONTHS[d.getMonth()].slice(0, 3); }
+function pmgWebShortIso(iso) { const d = pmgDateOf(iso); return d.getDate() + ' ' + PMG_MONTHS[d.getMonth()].slice(0, 3); }
 
 // ---------- Домашка ----------
 function pmgWebHwRow(i, opts) {
@@ -319,7 +342,7 @@ function pmgWebGrades() {
         (s.rounded < 5 ? '<p>До «' + (s.rounded + 1) + '» ' + (need === Infinity ? 'пятёрками уже не дотянуть' : 'нужно <b>' + need + '</b> ' + pmgPlural(need, ['пятёрка', 'пятёрки', 'пятёрок']) + ' подряд') + '.</p>'
           : '<p>Выходит «5». ' + (keep == null || keep === Infinity ? '' : keep === 0 ? 'Запаса нет: тройка опустит до «4».' : 'Можно получить ещё ' + keep + ' ' + pmgPlural(keep, ['тройку', 'тройки', 'троек']) + ' и остаться на «5».') + '</p>') +
         (keep && s.rounded < 5 && keep !== Infinity ? '<p class="muted small">Запас: ' + keep + ' ' + pmgPlural(keep, ['тройка', 'тройки', 'троек']) + ' без потери «' + s.rounded + '».</p>' : '') +
-        '<ul class="w-mlist">' + s.marks.slice().reverse().map((m) => '<li>' + pmgMarkChip(m.value) + '<span class="w-ms">' + pmgEsc(m.typeName || 'Оценка') + '</span><span class="muted small">' + pmgShortIso(pmgIso(pmgParseDate(m.date))) + '</span></li>').join('') + '</ul></div>';
+        '<ul class="w-mlist">' + s.marks.slice().reverse().map((m) => '<li>' + pmgMarkChip(m.value) + '<span class="w-ms">' + pmgEsc(m.typeName || 'Оценка') + '</span><span class="muted small">' + pmgWebShortIso(pmgIso(pmgParseDate(m.date))) + '</span></li>').join('') + '</ul></div>';
     }
     return h + '</article>';
   }).join('') + '</section>';
@@ -329,7 +352,16 @@ function pmgWebGrades() {
 }
 
 // ---------- Здоровье и отчёты ----------
-function pmgWebHealth() { return '<div class="w-title"><h1>Здоровье</h1></div>' + pmgHealthView() + pmgWebPushCard(true); }
+// ---------- Pass: тот же экран, что во вкладке расширения ----------
+function pmgWebPass() {
+  setTimeout(() => { if (typeof pmgPlayGains === 'function') pmgPlayGains(); }, 300);
+  return '<div class="sheet tab-pass w-pass">' + pmgPassView() + '</div>';
+}
+
+// ---------- Настройки: уведомления, устройства, выход ----------
+function pmgWebMe() {
+  return '<div class="w-title"><h1>Настройки</h1></div>' + pmgWebPushCard(true) + '<div class="health devs">' + pmgDevicesBlock() + '</div>';
+}
 
 function pmgWebReports() {
   let out = '<h2 class="w-h2">Отчёты</h2>';
@@ -349,7 +381,8 @@ function pmgWebBind() {
     if (!t || t.tagName === 'INPUT' || t.tagName === 'SELECT' || t.tagName === 'TEXTAREA') return;
     const act = t.dataset.act, v = t.dataset.v;
     switch (act) {
-      case 'w-tab': if (web.tab !== v) { web.tab = v; web.enter = true; history.replaceState(null, '', '#' + v); if (v === 'friends') pmgFriendsLoad(); pmgWebRender(); window.scrollTo(0, 0); } else window.scrollTo({ top: 0, behavior: 'smooth' }); return;
+      case 'w-tab': if (web.tab !== v) { web.tab = v; web.enter = true; history.replaceState(null, '', '#' + v); if (v === 'friends') pmgFriendsLoad(); if (v === 'me') pmgGameMsg('devices'); pmgWebRender(); window.scrollTo(0, 0); } else window.scrollTo({ top: 0, behavior: 'smooth' }); return;
+      case 'tab': { const k = t.dataset.tab === 'friends' ? 'friends' : t.dataset.tab === 'pass' ? 'pass' : 'home'; web.tab = k; web.enter = true; history.replaceState(null, '', '#' + k); if (k === 'friends') pmgFriendsLoad(); pmgWebRender(); window.scrollTo(0, 0); return; }
       case 'w-sync': pmgWebSync(); return;
       case 'w-push-on': { t.disabled = true; const r = await pmgPushSubscribe().catch((e) => ({ ok: false, error: e.message })); web.push = await pmgPushState(); pmgToast(r.ok ? 'Готово — сейчас придёт проверочное уведомление' : r.error === 'denied' ? 'Ты не разрешил уведомления' : r.error === 'ios_home' ? 'Сначала добавь Gradient на экран «Домой»' : 'Не получилось: ' + r.error); pmgWebRender(true); return; }
       case 'w-push-off': await pmgPushUnsubscribe(); web.push = await pmgPushState(); pmgToast('Уведомления выключены'); pmgWebRender(true); return;
@@ -378,11 +411,14 @@ function pmgWebBind() {
       case 'report-share': pmgWebShareReport(); return;
     }
     if (await pmgOwnHwAct(act, t)) return;
-    await pmgHealthAct(act, t);
+    if (await pmgHealthAct(act, t)) return;
+    await pmgPassAct(act, t);
   });
+  root.addEventListener('input', pmgPassInput);
   root.addEventListener('change', async (e) => {
     const t = e.target;
     if (await pmgOwnHwChange(e)) return;
+    if (await pmgPassChange(e)) return;
     if (t.dataset.act === 'done') {
       if (t.checked) pmg.done[t.dataset.key] = Date.now(); else delete pmg.done[t.dataset.key];
       const card = t.closest('.w-hw'); if (card) card.classList.toggle('done', t.checked);
@@ -416,7 +452,8 @@ async function pmgWebShareReport() {
   pmgWebBind();
   await pmgWebLoad();
   const h = location.hash.slice(1);
-  if (PMG_WEB_TABS.some(([k]) => k === h)) web.tab = h;
+  if (PMG_WEB_TABS.some(([k]) => k === h) || h === 'me') web.tab = h;
+  if (h === 'health') web.tab = 'me';
   const pair = /pair=([A-Za-z0-9-]+)/.exec(location.hash);
   pmgWebRender();
   if (pair && !web.authed) { const inp = document.querySelector('[data-act="w-code"]'); if (inp) inp.value = pair[1]; await pmgWebClaim(pair[1]); }
@@ -432,7 +469,7 @@ async function pmgWebShareReport() {
     const m = /pair=([A-Za-z0-9-]+)/.exec(location.hash);
     if (m && !web.authed) pmgWebClaim(m[1]);
     const k = location.hash.slice(1);
-    if (web.authed && PMG_WEB_TABS.some(([x]) => x === k) && k !== web.tab) { web.tab = k; web.enter = true; pmgWebRender(); }
+    if (web.authed && (PMG_WEB_TABS.some(([x]) => x === k) || k === 'me') && k !== web.tab) { web.tab = k; web.enter = true; pmgWebRender(); }
   });
   setInterval(() => { if (document.visibilityState === 'visible' && Date.now() - web.lastSync > 5 * 60e3) pmgWebSync(); }, 60e3);
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && Date.now() - web.lastSync > 60e3) pmgWebSync(); });

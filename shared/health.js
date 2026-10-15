@@ -41,6 +41,7 @@ function pmgDevicesView() {
   h += pmgPairCard(!cloud);
   if (cloud) {
     h += pmgPhoneSummary();
+    h += pmgHealthSetupCard(pmgHData().some((r) => r.steps != null));
     h += pmgDevicesBlock();
   }
   return h + '</div>';
@@ -51,8 +52,8 @@ function pmgPhoneSummary() {
   const by = pmgHByDay(), t = by[pmgIso(pmgToday())] || {}, goal = pmgHealthGoal();
   const week = pmgDaysBack(7).reduce((s, d) => s + ((by[d] && by[d].steps) || 0), 0);
   const any = pmgHData().some((r) => r.steps != null);
-  if (!any) return '<section class="card ph-sum"><div class="card-head"><h3>С телефона</h3></div><p class="muted">Шаги пока не приходят. Их подключают на телефоне: приложение Gradient → «Здоровье» → «Шаги с телефона».</p></section>';
-  return '<section class="card ph-sum"><div class="card-head"><h3>С телефона</h3><a class="link" href="' + PMG_SITE + '#health" target="_blank" rel="noopener">Подробнее в приложении →</a></div>' +
+  if (!any) return '<section class="card ph-sum"><div class="card-head"><h3>С телефона</h3></div><p class="muted">Шаги пока не приходят. Подключить их можно ниже, в «Шаги с телефона» — это нужно только для рейтинга шагов с друзьями.</p></section>';
+  return '<section class="card ph-sum"><div class="card-head"><h3>С телефона</h3></div>' +
     '<div class="ph-sum-row"><div><b>' + pmgFmtInt(t.steps || 0) + '</b><span>шагов сегодня</span></div><div><b>' + (t.floors != null ? t.floors : '—') + '</b><span>этажей</span></div>' +
     '<div><b>' + pmgFmtInt(week) + '</b><span>за 7 дней</span></div></div>' +
     '<div class="xpbar"><i style="width:' + Math.min(100, (t.steps || 0) / goal * 100).toFixed(1) + '%"></i></div></section>';
@@ -333,7 +334,7 @@ function pmgHealthSetupCard(has) {
 function pmgPairCard(promo) {
   const pc = pmg.pairCode;
   let h = '<section class="card hl-dev' + (promo ? ' promo' : '') + '"><div class="card-head"><h3>' + (promo ? 'Gradient на телефоне' : 'Подключить телефон') + '</h3></div>';
-  if (promo) h += '<p class="muted">Приложение на телефоне: оценки, домашка (можно добавлять свою, с фото доски), шаги и отчёты. Работает на iPhone и Android. Оценки будут храниться на сервере в закрытом разделе — видишь их только ты.</p>';
+  if (promo) h += '<p class="muted">Приложение на телефоне: оценки, домашка (можно добавлять свою, с фото доски), отчёты и Gradient Pass с огоньком и заданиями. Работает на iPhone и Android. Оценки будут храниться на сервере в закрытом разделе — видишь их только ты.</p>';
   if (pc && pc.expires > Date.now()) {
     const link = PMG_SITE + '#pair=' + pc.raw;
     let qr = '';

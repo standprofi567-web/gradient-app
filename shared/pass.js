@@ -88,7 +88,7 @@ function pmgPassView() {
 
   if (st.restoreOffer) h += '<section class="card restore"><b>Огонёк из ' + st.restoreOffer.value + ' дней погас.</b> Выполни все 3 задания дня сегодня — и серия вернётся. Так можно один раз за сезон.</section>';
   if (!prof.created) {
-    h += '<section class="card start-cta"><div><b>Играй с друзьями</b><p class="muted">Очки уже считаются у тебя на компьютере. Начни сезон, чтобы попасть в рейтинг группы.</p></div>' +
+    h += '<section class="card start-cta"><div><b>Играй с друзьями</b><p class="muted">Очки уже считаются. Начни сезон, чтобы попасть в рейтинг группы.</p></div>' +
       '<button class="btn primary" data-act="tab" data-tab="friends">Начать</button></section>';
   }
 

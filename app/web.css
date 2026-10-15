@@ -218,3 +218,8 @@ body.pmg-page.web-body::before {
 .w-push-x { position: absolute; top: 6px; right: 6px; width: 32px; height: 32px; border: 0; background: none; color: var(--ink-3, #888); font-size: 20px; cursor: pointer; border-radius: 8px; }
 .w-push-btns { display: flex; gap: 8px; margin-top: 12px; padding-left: 52px; flex-wrap: wrap; }
 .w-push.in-set { margin-top: 16px; }
+
+/* Pass на телефоне: тот же экран, что в расширении, без внутренней прокрутки листа */
+.w-pass.sheet { overflow: visible; padding: 4px 0 8px; margin: 0 -16px; padding-left: 16px; padding-right: 16px; container: sheet / inline-size; outline: none; }
+.panel.web > .gains-card, .panel.web > .lvl-up, .panel.web > .streak-scene, .panel.web > .crop-modal { position: fixed; z-index: 60; }
+.w-head .icon-btn.on { color: var(--accent); }
