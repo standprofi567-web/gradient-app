@@ -8,7 +8,7 @@ const PMG_WEB_TABS = [
   ['health', 'Здоровье', '<path d="M3 12h4l2.5-6 4 12 2.5-6H21" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>'],
   ['reports', 'Отчёты', '<rect x="4" y="3" width="16" height="18" rx="3" fill="none" stroke="currentColor" stroke-width="1.9"/><path d="M8 15l2.5-3 2 2L16 9" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>']
 ];
-const PMG_WEB_KEYS = ['pmg_auth', 'pmg_cache', 'pmg_status', 'pmg_settings', 'pmg_done', 'pmg_hw_due', 'pmg_own_hw', 'pmg_hw_photos', 'pmg_health', 'pmg_cloud_at', 'pmg_mark_seen', 'pmg_game', 'pmg_profile'];
+const PMG_WEB_KEYS = ['pmg_devices', 'pmg_auth', 'pmg_cache', 'pmg_status', 'pmg_settings', 'pmg_done', 'pmg_hw_due', 'pmg_own_hw', 'pmg_hw_photos', 'pmg_health', 'pmg_cloud_at', 'pmg_mark_seen', 'pmg_game', 'pmg_profile'];
 const PMG_WEB_SYNCED = ['pmg_done', 'pmg_hw_due', 'pmg_own_hw', 'pmg_hw_photos', 'pmg_settings', 'pmg_logins'];
 
 const web = { authed: false, tab: 'home', syncing: false, syncErr: null, applying: false, lastSync: 0, pairErr: null, pairing: false, gradeSubj: null, hwView: 'days', showPast: false, enter: true };
@@ -24,6 +24,8 @@ async function pmgWebMessage(msg) {
     case 'login': return { ok: true };
     case 'health-key': return pmgHealthNewKey();
     case 'health-pull': return pmgHealthPull();
+    case 'devices': { const r = await pmgDevicesSync('web'); await pmgWebLoad(); return r; }
+    case 'device-revoke': { const r = await pmgDeviceRevoke(msg.id); await pmgWebLoad(); return r; }
     case 'cloud-sync': await pmgWebSync(); return { ok: true };
     case 'hw-photo-upload': return { ok: true, path: await pmgHwPhotoUpload(msg.dataUrl) };
     case 'hw-photo-urls': return { ok: true, urls: await pmgHwPhotoUrls(msg.paths || [], false) };
@@ -48,6 +50,7 @@ async function pmgWebLoad() {
   pmg.seen = s.pmg_mark_seen || {};
   pmg.game = s.pmg_game || null;
   pmg.profile = s.pmg_profile || {};
+  pmg.devices = s.pmg_devices || null;
   pmgApplyTheme();
 }
 
@@ -60,6 +63,7 @@ async function pmgWebSync() {
     if (r.pull && !r.pull.ok && r.pull.error !== 'no_snapshot') web.syncErr = r.pull.error;
     if (r.pull && r.pull.error === 'no_snapshot') web.noSnapshot = true; else if (r.pull && r.pull.ok) web.noSnapshot = false;
     if (r.state && r.state.ok === false) web.syncErr = r.state.error;
+    if (r.devices && r.devices.revoked) { web.applying = false; web.syncing = false; await pmgWebSignOut(true, 'Этот телефон отключили на компьютере. Чтобы вернуть, подключи его заново кодом.'); return; }
   } catch (e) { web.syncErr = String(e.message || e); }
   if (/signed_out|invalid|refresh/i.test(web.syncErr || '')) { await pmgWebSignOut(true); return; }
   await pmgWebLoad();
@@ -76,11 +80,11 @@ chrome.storage.onChanged.addListener((c) => {
   }
 });
 
-async function pmgWebSignOut(lost) {
+async function pmgWebSignOut(lost, why) {
   const keep = (await pmgStorageGet('pmg_settings')).pmg_settings;
   await chrome.storage.local.clear();
   if (keep) await pmgStorageSet({ pmg_settings: { theme: keep.theme, stepGoal: keep.stepGoal } });
-  web.authed = false; web.pairErr = lost ? 'Вход на этом телефоне потерялся. Подключи телефон заново кодом с компьютера.' : null;
+  web.authed = false; web.pairErr = why || (lost ? 'Вход на этом телефоне потерялся. Подключи телефон заново кодом с компьютера.' : null);
   pmg.data = null;
   location.hash = '';
   pmgWebRender();
@@ -163,11 +167,11 @@ function pmgWebNoData() {
 function pmgPairScreen() {
   return '<div class="w-pair"><div class="w-pair-logo"><span class="brand-mark big">' + PMG_LOGO.replace('width="18" height="18"', 'width="34" height="34"') + '</span></div>' +
     '<h1>Gradient</h1><p class="muted">Оценки, домашка, шаги и отчёты — на телефоне.</p>' +
-    '<section class="card"><h3>Подключи телефон</h3><ol class="w-steps"><li>На компьютере открой Gradient → вкладка <b>«Здоровье»</b>.</li><li>Нажми <b>«Подключить телефон»</b>.</li><li>Наведи камеру iPhone на QR-код — или введи код ниже.</li></ol>' +
+    '<section class="card"><h3>Подключи телефон</h3><ol class="w-steps"><li>На компьютере открой Gradient → вкладка <b>«Устройства»</b>.</li><li>Нажми <b>«Подключить телефон»</b>.</li><li>Наведи камеру телефона на QR-код — или введи код ниже.</li></ol>' +
     '<input class="in w-code" data-act="w-code" inputmode="text" autocapitalize="characters" autocomplete="one-time-code" maxlength="9" placeholder="ABCD-1234">' +
     (web.pairErr ? '<p class="err">' + pmgEsc(web.pairErr) + '</p>' : '') +
     '<button class="btn primary big" data-act="w-claim"' + (web.pairing ? ' disabled' : '') + '>' + (web.pairing ? 'Подключаю…' : 'Подключить') + '</button></section>' +
-    '<p class="muted small w-foot">Пароль не нужен: телефон получает доступ только к твоему аккаунту Gradient. Выйти можно во вкладке «Здоровье».</p></div>';
+    '<p class="muted small w-foot">Пароль не нужен: телефон получает доступ только к твоему аккаунту Gradient. Выйти можно внизу вкладки «Здоровье».</p></div>';
 }
 
 // ---------- Главная ----------

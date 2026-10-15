@@ -20,19 +20,84 @@ function pmgHealthView() {
   const rows = pmgHData();
   const has = rows.some((r) => r.steps != null || r.floors != null);
   let h = '<div class="health">';
-  if (!PMG_IS_WEB && !(pmg.settings && pmg.settings.cloud)) h += pmgDeviceCard(true);
   if (has) {
     h += pmgHealthHero();
     h += pmgHealthChartCard();
     h += '<div class="two">' + pmgHealthFacts() + pmgHealthInsights() + '</div>';
     h += pmgWeekReport();
   } else {
-    h += '<section class="card hl-empty"><div class="hl-empty-art">' + pmgStepsIcon(56) + '</div><h2>Шаги и этажи с iPhone</h2>' +
-      '<p class="muted">Подключи «Команды» на iPhone — и здесь появятся шаги, этажи, расстояние, отчёт недели и то, как активность совпадает с оценками.</p></section>';
+    h += '<section class="card hl-empty"><div class="hl-empty-art">' + pmgStepsIcon(56) + '</div><h2>Шаги и этажи с телефона</h2>' +
+      '<p class="muted">Подключи телефон ниже — iPhone через «Команды», Android через Health Connect. Здесь появятся шаги, расстояние, отчёт недели и то, как активность совпадает с оценками.</p></section>';
   }
   h += pmgHealthSetupCard(has);
-  if (PMG_IS_WEB || (pmg.settings && pmg.settings.cloud)) h += pmgDeviceCard(false);
+  h += pmgDevicesBlock();
   return h + '</div>';
+}
+
+// Вкладка расширения «Устройства»: связь с телефоном, список устройств и коротко — что пришло с телефона.
+function pmgDevicesView() {
+  const cloud = pmg.settings && pmg.settings.cloud;
+  let h = '<div class="health devs">';
+  h += pmgPairCard(!cloud);
+  if (cloud) {
+    h += pmgPhoneSummary();
+    h += pmgDevicesBlock();
+  }
+  return h + '</div>';
+}
+
+// Коротко о данных с телефона (подробно — в приложении).
+function pmgPhoneSummary() {
+  const by = pmgHByDay(), t = by[pmgIso(pmgToday())] || {}, goal = pmgHealthGoal();
+  const week = pmgDaysBack(7).reduce((s, d) => s + ((by[d] && by[d].steps) || 0), 0);
+  const any = pmgHData().some((r) => r.steps != null);
+  if (!any) return '<section class="card ph-sum"><div class="card-head"><h3>С телефона</h3></div><p class="muted">Шаги пока не приходят. Их подключают на телефоне: приложение Gradient → «Здоровье» → «Шаги с телефона».</p></section>';
+  return '<section class="card ph-sum"><div class="card-head"><h3>С телефона</h3><a class="link" href="' + PMG_SITE + '#health" target="_blank" rel="noopener">Подробнее в приложении →</a></div>' +
+    '<div class="ph-sum-row"><div><b>' + pmgFmtInt(t.steps || 0) + '</b><span>шагов сегодня</span></div><div><b>' + (t.floors != null ? t.floors : '—') + '</b><span>этажей</span></div>' +
+    '<div><b>' + pmgFmtInt(week) + '</b><span>за 7 дней</span></div></div>' +
+    '<div class="xpbar"><i style="width:' + Math.min(100, (t.steps || 0) / goal * 100).toFixed(1) + '%"></i></div></section>';
+}
+
+function pmgTimeAgo(ts) {
+  if (!ts) return '';
+  const d = new Date(ts), mins = Math.round((Date.now() - d) / 60000);
+  if (mins < 2) return 'только что';
+  if (mins < 60) return mins + ' мин назад';
+  const day = pmgAgo(d);
+  return (day === 'сегодня' ? 'сегодня' : day) + ' в ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+}
+
+const PMG_DEV_ICON = {
+  pc: '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><rect x="3" y="4.5" width="18" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8 20h8M12 16.5V20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
+  phone: '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><rect x="6.5" y="2.5" width="11" height="19" rx="2.6" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M10.5 18.5h3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
+  steps: '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M3 12h4l2.5-6 4 12 2.5-6H21" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+};
+
+// Список устройств аккаунта + источник шагов. Общий для расширения и приложения.
+function pmgDevicesBlock() {
+  const D = pmg.devices || {};
+  const list = D.devices || [];
+  const hs = D.health || (pmg.health && pmg.health.key && pmg.health.key.has ? { has: true, last_used: pmg.health.key.last_used } : null);
+  const row = (icon, title, sub, extra) => '<li class="dev"><span class="dev-ic">' + icon + '</span><div class="dev-main"><b>' + title + '</b><small class="muted">' + sub + '</small></div>' + (extra || '') + '</li>';
+  let h = '<section class="card devs-list"><div class="card-head"><h3>Устройства</h3>' + (D.at ? '<span class="muted small">обновлено ' + pmgTimeAgo(D.at) + '</span>' : '') + '</div><ul>';
+  list.forEach((d) => {
+    const me = d.id === D.me;
+    const isPhone = /iPhone|Android|iPad/.test(d.platform || '');
+    const extra = me ? '<span class="dev-me">это устройство</span>'
+      : pmg.confirm === 'rev:' + d.id ? '<button class="btn small danger" data-act="dev-revoke" data-v="' + pmgEsc(d.id) + '">Точно отключить?</button>'
+      : '<button class="btn small" data-act="dev-revoke" data-v="' + pmgEsc(d.id) + '">Отключить</button>';
+    h += row(isPhone ? PMG_DEV_ICON.phone : PMG_DEV_ICON.pc, pmgEsc(d.kind === 'web' ? 'Приложение Gradient' : 'Расширение Gradient'),
+      pmgEsc(d.platform || '') + ' · ' + (me ? 'сейчас' : 'был ' + pmgTimeAgo(d.last_seen)), extra);
+  });
+  if (!list.length) h += '<li class="dev empty muted">Пока ни одного устройства. Подключи телефон — и он появится здесь.</li>';
+  const src = hs && hs.source === 'android' ? 'Android · Health Connect' : hs && hs.source === 'iphone' ? 'iPhone · Команда' : 'ключ создан';
+  h += row(PMG_DEV_ICON.steps, 'Шаги', hs && hs.has ? src + (hs.last_used ? ' · последний раз ' + pmgTimeAgo(hs.last_used) : ' · данных ещё не было') : 'не подключены — настраиваются в приложении на телефоне');
+  h += '</ul>';
+  if (D.snapshot_at) h += '<p class="muted small dev-note">Последний снимок дневника на сервере: ' + pmgTimeAgo(D.snapshot_at) + '.</p>';
+  if (PMG_IS_WEB) h += '<div class="hl-dev-act">' + (pmg.confirm === 'signout' ? '<button class="btn small danger" data-act="hl-signout">Точно выйти?</button>' : '<button class="btn small" data-act="hl-signout">Выйти на этом телефоне</button>') + '</div>';
+  else h += '<div class="hl-dev-act">' + (pmg.confirm === 'cloud-off' ? '<button class="btn small danger" data-act="hl-cloud-off">Точно выключить?</button>' : '<button class="btn small" data-act="hl-cloud-off">Выключить связь с телефоном</button>') +
+    '<span class="muted small">Оценки перестанут отправляться на сервер.</span></div>';
+  return h + '</section>';
 }
 
 function pmgStepsIcon(s) {
@@ -214,63 +279,71 @@ function pmgWeekReport() {
     }).join('') + '</tbody></table></section>';
 }
 
-// ---------- Подключение iPhone ----------
+// ---------- Шаги с телефона: iPhone (Команды) и Android (Health Connect) ----------
 function pmgHealthSetupCard(has) {
   const k = (pmg.health && pmg.health.key) || { has: false };
   const fresh = pmg.hlKey;
-  const linked = PMG_IS_WEB || (pmg.settings && pmg.settings.cloud);
-  if (!linked) return '';
-  let h = '<section class="card hl-setup' + (has && !pmg.hlSetupOpen && !fresh ? ' closed' : '') + '"><div class="card-head"><h3>Команда для iPhone</h3>' +
+  const plat = pmg.hlPlat || (/Android/.test(navigator.userAgent) ? 'android' : 'ios');
+  const open = !has || pmg.hlSetupOpen || fresh;
+  let h = '<section class="card hl-setup' + (open ? '' : ' closed') + '"><div class="card-head"><h3>Шаги с телефона</h3>' +
     (has && !fresh ? '<button class="btn small" data-act="hl-setup-toggle">' + (pmg.hlSetupOpen ? 'Свернуть' : 'Настроить') + '</button>' : '') + '</div>';
-  if (has && !pmg.hlSetupOpen && !fresh) {
-    return h + '<p class="muted small">Данные приходят' + (k.last_used ? ', последний раз ' + pmgAgo(k.last_used) : '') + '.</p></section>';
+  if (!open) {
+    const src = pmg.devices && pmg.devices.health && pmg.devices.health.source;
+    return h + '<p class="muted small">Данные приходят' + (src === 'android' ? ' с Android' : src === 'iphone' ? ' с iPhone' : '') + (k.last_used ? ', последний раз ' + pmgTimeAgo(k.last_used) : '') + '.</p></section>';
   }
+  h += '<div class="seg-ctl mini hl-plat">' + [['ios', 'iPhone'], ['android', 'Android']].map(([x, l]) => '<button class="' + (plat === x ? 'on' : '') + '" data-act="hl-plat" data-v="' + x + '">' + l + '</button>').join('') + '</div>';
   if (!fresh) {
-    h += '<p class="muted">Команда раз в день сама берёт шаги и этажи из «Здоровья» и присылает их сюда. Для неё нужен личный ключ — он как пароль, никому не показывай.</p>' +
-      (k.has ? '<p class="muted small">Ключ уже создан' + (k.last_used ? ', последний раз использован ' + pmgAgo(k.last_used) : ', но ещё ни разу не использован') + '. Новый ключ отключит старый.</p>' : '') +
+    h += '<p class="muted">' + (plat === 'ios'
+      ? 'На iPhone шаги и этажи лежат в «Здоровье». Команда раз в день сама берёт их оттуда и присылает сюда.'
+      : 'На Android шаги собирает Health Connect (туда пишут Google Fit, Samsung Health, Mi Fitness и другие). Бесплатное приложение HC Webhook отправляет их сюда само, по расписанию.') +
+      ' Для этого нужен личный ключ — он как пароль, никому не показывай.</p>' +
+      (k.has ? '<p class="muted small">Ключ уже создан' + (k.last_used ? ', последний раз использован ' + pmgTimeAgo(k.last_used) : ', но ещё ни разу не использован') + '. Новый ключ отключит старый.</p>' : '') +
       '<button class="btn primary" data-act="hl-key"' + (pmg.busy ? ' disabled' : '') + '>' + (k.has ? 'Создать новый ключ' : 'Получить ключ') + '</button>';
     return h + '</section>';
   }
-  const url = PMG_HEALTH_URL + '?k=' + fresh + '&steps=';
-  h += '<p class="hl-warn">Ключ показывается один раз. Сразу вставь его в Команду.</p>' +
-    '<div class="hl-copy"><code>' + pmgEsc(url) + '</code><button class="btn small" data-act="hl-copy" data-v="' + pmgEsc(url) + '">Копировать</button></div>' +
-    '<ol class="hl-steps">' +
-    '<li>Открой <b>«Команды»</b> → вкладка «Быстрые команды» → <b>+</b>. Назови команду <b>Gradient</b>.</li>' +
-    '<li>Добавь действие <b>«Найти образцы здоровья»</b> (в поиске действий набери «здоров»). Тип — <b>Шаги</b>, условие «Дата начала» — <b>Сегодня</b>, внизу «Группировать по» — <b>День</b>.</li>' +
-    '<li>Добавь <b>«Получить сведения об образце здоровья»</b> → <b>Значение</b>, затем <b>«Задать переменную»</b> с именем <b>steps</b>.</li>' +
-    '<li>Повтори шаги 2–3 для типа <b>«Пролёты пройдены»</b> (переменная <b>floors</b>) и <b>«Расстояние ходьбы и бега»</b> (переменная <b>km</b>).</li>' +
-    '<li>Добавь действие <b>«Текст»</b>, вставь скопированную ссылку и сразу после неё переменную <b>steps</b>, затем допиши <code>&amp;floors=</code> + переменная <b>floors</b> и <code>&amp;km=</code> + переменная <b>km</b>.</li>' +
-    '<li>Добавь <b>«Получить содержимое URL»</b> (на вход — этот текст) и <b>«Показать результат»</b>. Нажми ▶ — должно появиться «Готово: … шагов».</li>' +
-    '<li>Вкладка <b>«Автоматизация»</b> → <b>+</b> → <b>«Время суток»</b> → 21:30, ежедневно → <b>«Запускать сразу»</b> → действие «Запустить команду» → Gradient. Сделай ещё одну на 14:00 — днём тоже будут свежие данные.</li>' +
-    '</ol><p class="muted small">Названия действий в разных версиях iOS могут слегка отличаться. Можно ещё прислать активные ккал (<code>&amp;kcal=</code>) и сон в минутах (<code>&amp;sleep=</code>).</p>' +
-    '<button class="btn" data-act="hl-key-done">Готово, ключ сохранил</button></section>';
+  h += '<p class="hl-warn">Ключ показывается один раз. Сразу вставь ссылку в ' + (plat === 'ios' ? 'Команду' : 'HC Webhook') + '.</p>';
+  if (plat === 'ios') {
+    const url = PMG_HEALTH_URL + '?k=' + fresh + '&steps=';
+    h += '<div class="hl-copy"><code>' + pmgEsc(url) + '</code><button class="btn small" data-act="hl-copy" data-v="' + pmgEsc(url) + '">Копировать</button></div>' +
+      '<ol class="hl-steps">' +
+      '<li>Открой <b>«Команды»</b> → «Быстрые команды» → <b>+</b>. Назови команду <b>Gradient</b>.</li>' +
+      '<li>Добавь действие <b>«Найти образцы здоровья»</b> (в поиске набери «здоров»). Тип — <b>Шаги</b>, «Дата начала» — <b>Сегодня</b>, внизу «Группировать по» — <b>День</b>.</li>' +
+      '<li>Добавь <b>«Получить сведения об образце здоровья»</b> → <b>Значение</b>, затем <b>«Задать переменную»</b> → <b>steps</b>.</li>' +
+      '<li>Повтори шаги 2–3 для <b>«Пролёты пройдены»</b> (переменная <b>floors</b>) и <b>«Расстояние ходьбы и бега»</b> (<b>km</b>).</li>' +
+      '<li>Добавь <b>«Текст»</b>: вставь скопированную ссылку, сразу за ней переменную <b>steps</b>, потом <code>&amp;floors=</code> + <b>floors</b> и <code>&amp;km=</code> + <b>km</b>.</li>' +
+      '<li>Добавь <b>«Получить содержимое URL»</b> и <b>«Показать результат»</b>. Нажми ▶ — появится «Готово: … шагов».</li>' +
+      '<li><b>«Автоматизация»</b> → <b>+</b> → <b>«Время суток»</b> → 21:30, ежедневно → <b>«Запускать сразу»</b> → «Запустить команду» → Gradient. Вторую сделай на 14:00.</li></ol>' +
+      '<p class="muted small">Названия действий в разных версиях iOS могут слегка отличаться. Можно добавить сон в минутах: <code>&amp;sleep=</code>.</p>';
+  } else {
+    const url = PMG_HEALTH_URL + '?k=' + fresh;
+    h += '<div class="hl-copy"><code>' + pmgEsc(url) + '</code><button class="btn small" data-act="hl-copy" data-v="' + pmgEsc(url) + '">Копировать</button></div>' +
+      '<ol class="hl-steps">' +
+      '<li>Проверь, что шаги попадают в <b>Health Connect</b>: Настройки → «Health Connect» (или «Подключение к Здоровью»). Samsung Health, Google Fit, Mi Fitness — в их настройках включи синхронизацию с Health Connect.</li>' +
+      '<li>Установи из Google Play бесплатное приложение <b>HC Webhook</b> (com.hcwebhook.app).</li>' +
+      '<li>Открой его и разреши чтение: <b>Шаги</b>, <b>Расстояние</b>, <b>Активные калории</b>, <b>Сон</b>.</li>' +
+      '<li>Раздел <b>Webhooks</b> → добавить → вставь скопированную ссылку. Формат — <b>JSON</b>. Нажми <b>Test</b> — должно быть «ок».</li>' +
+      '<li>Синхронизация: <b>Interval</b>, раз в 60 минут. В настройках телефона отключи для HC Webhook экономию батареи — иначе Android может его усыплять.</li></ol>' +
+      '<p class="muted small">Этажи на большинстве Android не считаются — в рейтинге у тебя будут шаги и расстояние.</p>';
+  }
+  h += '<button class="btn" data-act="hl-key-done">Готово, ключ сохранил</button></section>';
   return h;
 }
 
-// ---------- Телефон и компьютер ----------
-function pmgDeviceCard(promo) {
-  if (PMG_IS_WEB) {
-    return '<section class="card hl-dev"><div class="card-head"><h3>Это устройство</h3><span class="muted small">' + (pmg.cloudAt ? 'обмен ' + pmgAgo(pmg.cloudAt) : '') + '</span></div>' +
-      '<p class="muted">Оценки приходят с компьютера, где стоит расширение Gradient — оно присылает их после каждого обновления дневника.' +
-      (pmg.status && pmg.status.at ? ' Последний снимок дневника: ' + pmgAgo(pmg.status.at) + '.' : '') + '</p>' +
-      '<div class="hl-dev-act"><button class="btn small" data-act="hl-sync">Обновить сейчас</button>' +
-      (pmg.confirm === 'signout' ? '<button class="btn small danger" data-act="hl-signout">Точно выйти?</button>' : '<button class="btn small" data-act="hl-signout">Выйти на этом устройстве</button>') + '</div></section>';
-  }
+// ---------- Подключить телефон (расширение) ----------
+function pmgPairCard(promo) {
   const pc = pmg.pairCode;
-  let h = '<section class="card hl-dev' + (promo ? ' promo' : '') + '"><div class="card-head"><h3>' + (promo ? 'Gradient на телефоне' : 'Телефон') + '</h3>' +
-    (!promo && pmg.cloudAt ? '<span class="muted small">обмен ' + pmgAgo(pmg.cloudAt) + '</span>' : '') + '</div>';
-  if (promo) h += '<p class="muted">Открой Gradient на телефоне: оценки, домашка, Pass и шаги с iPhone в одном месте. Для этого оценки будут храниться на сервере в закрытом разделе — видишь их только ты.</p>';
+  let h = '<section class="card hl-dev' + (promo ? ' promo' : '') + '"><div class="card-head"><h3>' + (promo ? 'Gradient на телефоне' : 'Подключить телефон') + '</h3></div>';
+  if (promo) h += '<p class="muted">Приложение на телефоне: оценки, домашка (можно добавлять свою, с фото доски), шаги и отчёты. Работает на iPhone и Android. Оценки будут храниться на сервере в закрытом разделе — видишь их только ты.</p>';
   if (pc && pc.expires > Date.now()) {
     const link = PMG_SITE + '#pair=' + pc.raw;
     let qr = '';
     try { const q = qrcode(0, 'M'); q.addData(link); q.make(); qr = q.createSvgTag({ cellSize: 5, margin: 2, scalable: true }); } catch (_) { /* без QR */ }
     const left = Math.max(0, Math.ceil((pc.expires - Date.now()) / 60000));
-    h += '<div class="pair"><div class="pair-qr">' + qr + '</div><div class="pair-txt"><p>Наведи камеру iPhone на QR-код или открой <b>' + PMG_SITE.replace('https://', '').replace(/\/$/, '') + '</b> и введи код:</p>' +
+    h += '<div class="pair"><div class="pair-qr">' + qr + '</div><div class="pair-txt"><p>Наведи камеру телефона на QR-код или открой <b>' + PMG_SITE.replace('https://', '').replace(/\/$/, '') + '</b> и введи код:</p>' +
       '<div class="pair-code">' + pmgEsc(pc.code) + '</div><p class="muted small">Код одноразовый, действует ещё ' + left + ' мин.</p>' +
-      '<p class="muted small">Потом в Safari нажми «Поделиться» → «На экран Домой» — Gradient станет приложением.</p></div></div>';
+      '<p class="muted small">iPhone: в Safari «Поделиться» → «На экран Домой». Android: в Chrome меню ⋮ → «Добавить на главный экран».</p></div></div>';
   } else {
-    h += '<div class="hl-dev-act"><button class="btn primary" data-act="hl-pair"' + (pmg.busy ? ' disabled' : '') + '>' + (pmg.busy ? 'Готовлю код…' : 'Подключить телефон') + '</button>' +
-      (!promo ? (pmg.confirm === 'cloud-off' ? '<button class="btn small danger" data-act="hl-cloud-off">Точно выключить?</button>' : '<button class="btn small" data-act="hl-cloud-off">Выключить связь с телефоном</button>') : '') + '</div>';
+    h += '<div class="hl-dev-act"><button class="btn primary" data-act="hl-pair"' + (pmg.busy ? ' disabled' : '') + '>' + (pmg.busy ? 'Готовлю код…' : promo ? 'Подключить телефон' : 'Показать код для ещё одного телефона') + '</button></div>';
   }
   if (pmg.pairError) h += '<p class="err">' + pmgEsc(pmg.pairError) + '</p>';
   return h + '</section>';
@@ -304,7 +377,17 @@ async function pmgHealthAct(act, t) {
       if (r && r.ok) {
         pmg.pairCode = { code: r.code, raw: r.code.replace('-', ''), expires: new Date(r.expires_at).getTime() };
         clearInterval(pmg.pairTimer);
-        pmg.pairTimer = setInterval(() => { if (pmg.tab === 'health') pmgRender(true, true); if (!pmg.pairCode || pmg.pairCode.expires < Date.now()) clearInterval(pmg.pairTimer); }, 30000);
+        const webBefore = ((pmg.devices && pmg.devices.devices) || []).filter((d) => d.kind === 'web').length;
+        let ticks = 0;
+        pmg.pairTimer = setInterval(async () => {
+          ticks++;
+          if (!pmg.pairCode || pmg.pairCode.expires < Date.now()) { clearInterval(pmg.pairTimer); pmgRender(true, true); return; }
+          // Ждём, пока телефон войдёт по коду
+          const d = await pmgGameMsg('devices');
+          const now = ((pmg.devices && pmg.devices.devices) || []).filter((x) => x.kind === 'web').length;
+          if (d && d.ok && now > webBefore) { clearInterval(pmg.pairTimer); pmg.pairCode = null; pmgToast('Телефон подключён'); }
+          if (pmg.tab === 'devices' && (ticks % 6 === 0 || !pmg.pairCode)) pmgRender(true, true);
+        }, 5000);
       } else pmg.pairError = 'Не получилось: ' + pmgErrText((r && r.error) || 'network');
       pmgRender(true, true); return true;
     }
@@ -312,6 +395,11 @@ async function pmgHealthAct(act, t) {
       if (pmg.confirm !== 'cloud-off') { pmg.confirm = 'cloud-off'; pmgRender(true, true); return true; }
       pmg.confirm = null; await pmgGameMsg('cloud-off'); pmgRender(true, true); return true;
     }
+    case 'dev-revoke': {
+      if (pmg.confirm !== 'rev:' + v) { pmg.confirm = 'rev:' + v; pmgRender(true, true); return true; }
+      pmg.confirm = null; await pmgGameMsg('device-revoke', { id: v }); pmgRender(true, true); return true;
+    }
+    case 'hl-plat': pmg.hlPlat = v; pmgRender(true, true); return true;
     case 'hl-sync': {
       t.disabled = true; t.textContent = 'Обновляю…';
       await pmgRefresh();

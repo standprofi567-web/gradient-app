@@ -146,6 +146,7 @@ async function pmgCloudAll(opts) {
   if (opts.pull) out.pull = await pmgCloudPullSnapshot().catch((e) => ({ ok: false, error: String(e.message || e) }));
   out.state = await pmgCloudSync().catch((e) => ({ ok: false, error: String(e.message || e) }));
   out.health = await pmgHealthPull().catch((e) => ({ ok: false, error: String(e.message || e) }));
+  out.devices = await pmgDevicesSync(typeof PMG_WEB !== 'undefined' && PMG_WEB ? 'web' : 'extension').catch((e) => ({ ok: false, error: String(e.message || e) }));
   return out;
 }
 
@@ -178,4 +179,38 @@ async function pmgHwPhotoUrls(paths, asData) {
   const out = {};
   paths.forEach((p) => { const c = pmgHwUrlCache.get(p); if (c) out[p] = asData ? c.data || null : c.url; });
   return out;
+}
+
+// ---------- Устройства ----------
+function pmgPlatform() {
+  const ua = navigator.userAgent || '';
+  const os = /iPhone/.test(ua) ? 'iPhone' : /iPad/.test(ua) ? 'iPad' : /Android/.test(ua) ? 'Android' : /Mac OS X/.test(ua) ? 'Mac' : /Windows/.test(ua) ? 'Windows' : /Linux/.test(ua) ? 'Linux' : 'Устройство';
+  const br = navigator.brave ? 'Brave' : /YaBrowser/.test(ua) ? 'Яндекс Браузер' : /Edg\//.test(ua) ? 'Edge' : /OPR\//.test(ua) ? 'Opera' : /Firefox/.test(ua) ? 'Firefox' : /CriOS|Chrome/.test(ua) ? 'Chrome' : /Safari/.test(ua) ? 'Safari' : '';
+  return br ? os + ' · ' + br : os;
+}
+
+async function pmgDeviceId() {
+  const s = await chrome.storage.local.get('pmg_device_id');
+  if (s.pmg_device_id) return s.pmg_device_id;
+  const id = 'd' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  await chrome.storage.local.set({ pmg_device_id: id });
+  return id;
+}
+
+// Отметиться на сервере и забрать список устройств аккаунта.
+async function pmgDevicesSync(kind) {
+  const id = await pmgDeviceId();
+  const plat = pmgPlatform();
+  const reg = await pmgRpc('register_device', { p_id: id, p_kind: kind, p_platform: plat, p_name: (kind === 'web' ? 'Приложение · ' : 'Расширение · ') + plat });
+  const list = await pmgRpc('list_devices', {});
+  await chrome.storage.local.set({ pmg_devices: { at: Date.now(), me: id, ...(list || {}) } });
+  return { ok: true, revoked: !!(reg && reg.revoked) };
+}
+
+async function pmgDeviceRevoke(id) {
+  await pmgRpc('revoke_device', { p_id: id });
+  const list = await pmgRpc('list_devices', {});
+  const s = await chrome.storage.local.get('pmg_devices');
+  await chrome.storage.local.set({ pmg_devices: { ...(s.pmg_devices || {}), at: Date.now(), ...(list || {}) } });
+  return { ok: true };
 }

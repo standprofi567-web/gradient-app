@@ -9,7 +9,7 @@ const PMG_WD_SHORT = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
 const PMG_MONTHS = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
 const PMG_DEFAULT_SETTINGS = { threshold: 0.55, studentId: null, hwMode: 'assigned', notify: true, keepAlive: true, theme: 'auto', bg: 'glyphs', v: 2 };
 const PMG_LOGO = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M16.95 7.05A7 7 0 1 0 19 12h-6" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><circle cx="16.95" cy="7.05" r="1.9" fill="currentColor"/></svg>';
-const PMG_TABS = [['overview', 'Сводка'], ['pass', 'Pass'], ['friends', 'Друзья'], ['health', 'Здоровье'], ['calendar', 'Календарь'], ['day', 'Уроки'], ['homework', 'Домашка'], ['subjects', 'Предметы'], ['absences', 'Пропуски'], ['finals', 'Итоги']];
+const PMG_TABS = [['overview', 'Сводка'], ['pass', 'Pass'], ['friends', 'Друзья'], ['devices', 'Устройства'], ['calendar', 'Календарь'], ['day', 'Уроки'], ['homework', 'Домашка'], ['subjects', 'Предметы'], ['absences', 'Пропуски'], ['finals', 'Итоги']];
 
 const pmg = {
   root: null, mode: 'drawer', data: null, status: null,
@@ -173,7 +173,7 @@ function pmgRender(keepScroll, quiet) {
   }
   pmg.quietRender = !!quiet;
   const period = pmgCurrentPeriod();
-  const views = { overview: pmgOverview, pass: pmgPassView, friends: pmgFriendsView, health: pmgHealthView, calendar: pmgCalendarView, day: pmgDayView, homework: pmgHomeworkView, subjects: pmgSubjectsView, absences: pmgAbsencesView, finals: pmgFinalsView };
+  const views = { overview: pmgOverview, pass: pmgPassView, friends: pmgFriendsView, devices: pmgDevicesView, calendar: pmgCalendarView, day: pmgDayView, homework: pmgHomeworkView, subjects: pmgSubjectsView, absences: pmgAbsencesView, finals: pmgFinalsView };
   const body = (views[pmg.tab] || pmgOverview)(period);
   const overlays = [...panel.querySelectorAll('.lvl-up, .gains-card')];
   panel.innerHTML = pmgBgfx() + pmgHeader(period) + pmgXpLine() + pmgUpdateBar() +
@@ -1221,7 +1221,8 @@ function pmgBind() {
     if (c.pmg_cache && c.pmg_cache.newValue) { pmg.data = pmgRevive(c.pmg_cache.newValue); changed = true; }
     if (c.pmg_status) { pmg.status = c.pmg_status.newValue; changed = true; }
     if (c.pmg_update) { pmg.update = c.pmg_update.newValue || null; changed = true; }
-    if (c.pmg_health) { pmg.health = c.pmg_health.newValue || null; if (pmg.tab === 'health') changed = true; }
+    if (c.pmg_health) { pmg.health = c.pmg_health.newValue || null; if (pmg.tab === 'devices') changed = true; }
+    if (c.pmg_devices) { pmg.devices = c.pmg_devices.newValue || null; if (pmg.tab === 'devices') changed = true; }
     if (c.pmg_cloud_at) { pmg.cloudAt = c.pmg_cloud_at.newValue || null; }
     if (c.pmg_own_hw) { pmg.ownHw = c.pmg_own_hw.newValue || {}; if (pmg.tab === 'homework' || pmg.tab === 'overview' || pmg.tab === 'day') changed = true; }
     if (c.pmg_hw_photos) { pmg.hwPhotos = c.pmg_hw_photos.newValue || {}; if (pmg.tab === 'homework' || pmg.tab === 'day') changed = true; }
@@ -1293,7 +1294,8 @@ function pmgApplyTheme() {
 }
 
 async function pmgLoadState() {
-  const s = await pmgStorageGet(['pmg_cache', 'pmg_settings', 'pmg_done', 'pmg_hw_due', 'pmg_status', 'pmg_drawer', 'pmg_game', 'pmg_profile', 'pmg_groups', 'pmg_boards', 'pmg_update', 'pmg_health', 'pmg_cloud_at', 'pmg_own_hw', 'pmg_hw_photos']);
+  const s = await pmgStorageGet(['pmg_cache', 'pmg_settings', 'pmg_done', 'pmg_hw_due', 'pmg_status', 'pmg_drawer', 'pmg_game', 'pmg_profile', 'pmg_groups', 'pmg_boards', 'pmg_update', 'pmg_health', 'pmg_cloud_at', 'pmg_own_hw', 'pmg_hw_photos', 'pmg_devices']);
+  pmg.devices = s.pmg_devices || null;
   pmg.ownHw = s.pmg_own_hw || {};
   pmg.hwPhotos = s.pmg_hw_photos || {};
   pmg.update = s.pmg_update || null;
