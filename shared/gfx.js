@@ -3,27 +3,45 @@
 let pmgGfxUid = 0;
 const pmgUid = (p) => (p || 'g') + (++pmgGfxUid);
 
-// ---------- Аватары: 24 планеты (8 цветов × 3 узора) ----------
-const PMG_AV_COLORS = [
-  ['#6366F1', '#A5B4FC'], ['#8B5CF6', '#DDD6FE'], ['#14B8A6', '#99F6E4'], ['#F59E0B', '#FDE68A'],
-  ['#EF4444', '#FECACA'], ['#0EA5E9', '#BAE6FD'], ['#22C55E', '#BBF7D0'], ['#EC4899', '#FBCFE8']
-];
+// ---------- Школьный Y2K: общая палитра и рисунки-стикеры ----------
+const PMG_Y2K = { ink: '#17141F', pink: '#FF5FB8', blue: '#2F4BFF', lime: '#D4FF3A', violet: '#7B5CFF', orange: '#FF8A3D', teal: '#22C3A6', yellow: '#FFE14D', paper: '#FFFFFF' };
+const PMG_Y2K_BG = ['#FF5FB8', '#2F4BFF', '#D4FF3A', '#7B5CFF', '#FF8A3D', '#22C3A6', '#FFE14D', '#FF6B6B'];
+// Рисунки в поле 64×64 с чернильной обводкой. c — основной цвет, d — второй.
+function pmgY2kArt(kind, c, d) {
+  const K = PMG_Y2K.ink, st = ' stroke="' + K + '" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"';
+  switch (kind) {
+    case 'smile': return '<circle cx="32" cy="32" r="17" fill="' + c + '"' + st + '/><ellipse cx="26" cy="28" rx="2.4" ry="3.6" fill="' + K + '"/><ellipse cx="38" cy="28" rx="2.4" ry="3.6" fill="' + K + '"/><path d="M23 36c3 5 15 5 18 0" fill="none"' + st + '/>';
+    case 'spark': return '<path d="M32 9c2 15 6 19 22 23-16 4-20 8-22 23-2-15-6-19-22-23 16-4 20-8 22-23z" fill="' + c + '"' + st + '/><path d="M50 12l1.5 4 4 1.5-4 1.5-1.5 4-1.5-4-4-1.5 4-1.5z" fill="' + d + '" stroke="' + K + '" stroke-width="1.6" stroke-linejoin="round"/>';
+    case 'fly': return '<path d="M31 32c-6-12-20-14-20-4 0 6 8 8 13 7-6 2-10 7-6 11 4 4 10-1 13-8zM33 32c6-12 20-14 20-4 0 6-8 8-13 7 6 2 10 7 6 11-4 4-10-1-13-8z" fill="' + c + '"' + st + '/><path d="M32 22v24M32 22l-4-6M32 22l4-6" fill="none"' + st + '/><circle cx="20" cy="27" r="2.5" fill="' + d + '"/><circle cx="44" cy="27" r="2.5" fill="' + d + '"/>';
+    case 'phone': return '<rect x="21" y="18" width="22" height="34" rx="5" fill="' + c + '"' + st + '/><rect x="25" y="23" width="14" height="11" rx="2" fill="' + d + '"' + st + '/><path d="M38 18v-7" fill="none"' + st + '/><circle cx="38" cy="10" r="2" fill="' + K + '"/><path d="M26 40h3M31 40h3M36 40h2M26 45h3M31 45h3M36 45h2" fill="none" stroke="' + K + '" stroke-width="2.4" stroke-linecap="round"/>';
+    case 'cd': return '<circle cx="32" cy="32" r="18" fill="#E7EBF4"' + st + '/><path d="M32 14a18 18 0 0 1 17 12" fill="none" stroke="' + c + '" stroke-width="5"/><path d="M15 38a18 18 0 0 0 12 11" fill="none" stroke="' + d + '" stroke-width="5"/><path d="M47 40a18 18 0 0 1-7 7" fill="none" stroke="#22C3A6" stroke-width="5"/><circle cx="32" cy="32" r="6" fill="#fff"' + st + '/><circle cx="32" cy="32" r="18" fill="none"' + st + '/>';
+    case 'heart': return '<path d="M32 50C14 38 12 28 16 22c4-6 12-6 16 1 4-7 12-7 16-1 4 6 2 16-16 28z" fill="' + c + '"' + st + '/><path d="M21 25c1-2 3-3 5-3" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".8"/>';
+    case 'bolt': return '<path d="M36 8L18 36h12l-4 20 20-30H34z" fill="' + c + '"' + st + '/>';
+    case 'pencil': return '<path d="M18 46l26-26 6 6-26 26-9 3z" fill="' + c + '"' + st + '/><path d="M44 20l4-4 6 6-4 4z" fill="' + d + '"' + st + '/><path d="M18 46l6 6M15 55l3-9 6 6z" fill="#F6D9B0"' + st + '/>';
+    case 'cherry': return '<path d="M24 40c4-14 10-22 18-26M40 40c0-12 1-20 2-26M42 14c4-2 8-1 10 2" fill="none"' + st + '/><circle cx="24" cy="44" r="8" fill="' + c + '"' + st + '/><circle cx="41" cy="44" r="8" fill="' + c + '"' + st + '/><circle cx="21" cy="41" r="2" fill="#fff"/><circle cx="38" cy="41" r="2" fill="#fff"/>';
+    case 'alien': return '<path d="M32 12c12 0 18 9 18 18 0 10-10 22-18 22S14 40 14 30c0-9 6-18 18-18z" fill="' + c + '"' + st + '/><path d="M20 30c4-1 8 2 9 7-5 1-9-2-9-7zM44 30c-4-1-8 2-9 7 5 1 9-2 9-7z" fill="' + K + '"/>';
+    case 'eight': return '<circle cx="32" cy="32" r="18" fill="' + K + '"/><circle cx="35" cy="28" r="8" fill="#fff"/><text x="35" y="32.5" text-anchor="middle" font-size="12" font-weight="800" fill="' + K + '" font-family="Arial, sans-serif">8</text><circle cx="25" cy="22" r="3" fill="' + c + '" opacity=".8"/>';
+    case 'tape': return '<rect x="12" y="20" width="40" height="26" rx="4" fill="' + c + '"' + st + '/><rect x="18" y="25" width="28" height="11" rx="5" fill="#fff"' + st + '/><circle cx="25" cy="30.5" r="3" fill="' + d + '" stroke="' + K + '" stroke-width="2"/><circle cx="39" cy="30.5" r="3" fill="' + d + '" stroke="' + K + '" stroke-width="2"/><path d="M22 46l3-5h14l3 5" fill="none"' + st + '/>';
+    case 'ruler': return '<rect x="10" y="24" width="44" height="16" rx="3" fill="' + c + '"' + st + '/><path d="M16 24v6M22 24v4M28 24v6M34 24v4M40 24v6M46 24v4" stroke="' + K + '" stroke-width="2.2" stroke-linecap="round"/>';
+    case 'five': return '<circle cx="32" cy="32" r="18" fill="#fff"' + st + '/><text x="32" y="43" text-anchor="middle" font-size="30" font-weight="800" fill="#E8344B" font-family="\'Comic Sans MS\', \'Segoe Print\', cursive" transform="rotate(-8 32 32)">5</text><path d="M18 46c6 4 22 4 30-2" fill="none" stroke="#E8344B" stroke-width="2.5" stroke-linecap="round"/>';
+  }
+  return '<circle cx="32" cy="32" r="16" fill="' + c + '"' + st + '/>';
+}
+const PMG_AV_KINDS = ['smile', 'spark', 'fly', 'phone', 'cd', 'heart', 'bolt', 'pencil', 'cherry', 'alien', 'eight', 'tape'];
+
+// Аватары: 24 стикера (12 рисунков × 2 расцветки). id остались прежними: planet-1…planet-24.
 function pmgAvatarSvg(id, size) {
   const n = Math.max(1, Math.min(24, +((/(\d+)/.exec(id || '') || [])[1] || 1))) - 1;
-  const [c1, c2] = PMG_AV_COLORS[n % 8], kind = Math.floor(n / 8);
-  const g = pmgUid('av');
-  let deco = '';
-  if (kind === 0) deco = '<ellipse cx="32" cy="34" rx="30" ry="7" fill="none" stroke="' + c2 + '" stroke-width="3" opacity=".85" transform="rotate(-18 32 32)"/>';
-  if (kind === 1) deco = '<circle cx="22" cy="24" r="5" fill="' + c1 + '" opacity=".55"/><circle cx="40" cy="38" r="7" fill="' + c1 + '" opacity=".5"/><circle cx="38" cy="20" r="3" fill="' + c1 + '" opacity=".5"/>';
-  if (kind === 2) deco = '<path d="M8 26c10 4 38 4 48 0M7 36c12 4 38 4 50 0M11 45c10 3 32 3 42 0" stroke="' + c2 + '" stroke-width="3.2" fill="none" opacity=".75" stroke-linecap="round"/>';
-  return '<svg viewBox="0 0 64 64" width="' + (size || 64) + '" height="' + (size || 64) + '" aria-hidden="true"><defs><radialGradient id="' + g + '" cx=".35" cy=".3" r=".8"><stop offset="0" stop-color="' + c2 + '"/><stop offset="1" stop-color="' + c1 + '"/></radialGradient>' +
-    '<clipPath id="' + g + 'c"><circle cx="32" cy="32" r="24"/></clipPath></defs>' +
-    '<circle cx="32" cy="32" r="32" fill="' + c1 + '" opacity=".16"/>' +
-    '<circle cx="32" cy="32" r="24" fill="url(#' + g + ')"/>' + (kind === 0 ? deco : '<g clip-path="url(#' + g + 'c)">' + deco + '</g>') +
-    '<circle cx="24" cy="23" r="5" fill="#fff" opacity=".35"/></svg>';
+  const kind = PMG_AV_KINDS[n % 12], alt = n >= 12;
+  const bg = PMG_Y2K_BG[(n * 3 + (alt ? 1 : 0)) % PMG_Y2K_BG.length];
+  const fills = { smile: PMG_Y2K.yellow, spark: alt ? PMG_Y2K.lime : '#fff', fly: alt ? PMG_Y2K.lime : PMG_Y2K.pink, phone: alt ? PMG_Y2K.pink : '#C9CFDD', cd: PMG_Y2K.pink, heart: alt ? PMG_Y2K.lime : '#FF4D6D', bolt: PMG_Y2K.yellow, pencil: PMG_Y2K.yellow, cherry: '#FF3B5C', alien: PMG_Y2K.lime, eight: PMG_Y2K.pink, tape: alt ? PMG_Y2K.lime : PMG_Y2K.orange };
+  const c = fills[kind], d = alt ? PMG_Y2K.blue : PMG_Y2K.pink;
+  const bgc = (bg === c) ? PMG_Y2K.violet : bg;
+  return '<svg viewBox="0 0 64 64" width="' + (size || 64) + '" height="' + (size || 64) + '" aria-hidden="true"><circle cx="32" cy="32" r="31" fill="' + bgc + '"/>' +
+    '<g transform="translate(32 32) scale(.82) translate(-32 -32)">' + pmgY2kArt(kind, c, d) + '</g></svg>';
 }
 
-// Аватар игрока: фото или планета + рамка + аура.
+// Аватар игрока: фото или стикер + рамка + аура.
 function pmgAvatar(p, size, opts) {
   opts = opts || {};
   const eq = p.equipped || {};
@@ -46,24 +64,23 @@ function pmgFlameSvg(days, size) {
     (tier >= 2 ? '<circle cx="8" cy="9" r="1" fill="' + cols[1] + '" class="spark"/><circle cx="25" cy="12" r="1.2" fill="' + cols[1] + '" class="spark s2"/>' : '') + '</svg>';
 }
 
-// ---------- Значок сезона (шестиугольник) ----------
-const PMG_BADGE_COLS = { b10: ['#B45309', '#FCD34D'], b25: ['#64748B', '#E2E8F0'], b40: ['#CA8A04', '#FDE047'], b50: ['#6366F1', '#14B8A6'] };
+// ---------- Значок сезона: хромовая звезда-вспышка с номером ----------
+const PMG_BADGE_COLS = { b10: ['#C2793A', '#FFD9A8'], b25: ['#8C96AA', '#FFFFFF'], b40: ['#E2A100', '#FFF3A3'], b50: ['#FF5FB8', '#D4FF3A'] };
 function pmgSeasonBadge(kind, theme, size) {
   const [a, b] = PMG_BADGE_COLS[kind] || PMG_BADGE_COLS.b10, g = pmgUid('bd');
   const lvl = (kind || 'b10').slice(1);
-  const art = theme === 'deep' ? '<path d="M24 26c5-6 13-6 18 0-5 6-13 6-18 0z" fill="#fff" opacity=".9"/><circle cx="38" cy="25" r="1.4" fill="' + a + '"/><path d="M24 26l-5-4v8z" fill="#fff" opacity=".9"/>'
-    : theme === 'neon' ? '<path d="M20 34V22h5v12M27 34V17h6v17M35 34V25h7v9" fill="none" stroke="#fff" stroke-width="2.2" stroke-linejoin="round"/>'
-      : '<circle cx="32" cy="26" r="7" fill="#fff" opacity=".95"/><ellipse cx="32" cy="27" rx="13" ry="3.6" fill="none" stroke="#fff" stroke-width="2" transform="rotate(-15 32 27)"/>';
-  return '<svg viewBox="0 0 64 64" width="' + (size || 56) + '" height="' + (size || 56) + '" aria-hidden="true"><defs><linearGradient id="' + g + '" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="' + b + '"/><stop offset="1" stop-color="' + a + '"/></linearGradient></defs>' +
-    '<path d="M32 3l25 14.5v29L32 61 7 46.5v-29z" fill="url(#' + g + ')" stroke="#fff" stroke-opacity=".5" stroke-width="2"/>' + art +
-    '<text x="32" y="51" text-anchor="middle" font-size="12" font-weight="700" fill="#fff" font-family="inherit">' + lvl + '</text></svg>';
+  let pts = '';
+  for (let i = 0; i < 24; i++) { const r = i % 2 ? 22 : 30, an = (i / 24) * Math.PI * 2 - Math.PI / 2; pts += (32 + r * Math.cos(an)).toFixed(1) + ',' + (32 + r * Math.sin(an)).toFixed(1) + ' '; }
+  return '<svg viewBox="0 0 64 64" width="' + (size || 56) + '" height="' + (size || 56) + '" aria-hidden="true"><defs><linearGradient id="' + g + '" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="' + b + '"/><stop offset=".45" stop-color="' + a + '"/><stop offset=".55" stop-color="' + b + '"/><stop offset="1" stop-color="' + a + '"/></linearGradient></defs>' +
+    '<polygon points="' + pts + '" fill="url(#' + g + ')" stroke="#17141F" stroke-width="2.5" stroke-linejoin="round"/>' +
+    '<circle cx="32" cy="32" r="14" fill="#17141F"/><text x="32" y="37.5" text-anchor="middle" font-size="15" font-weight="700" fill="' + b + '" font-family="\'PMG Pixel\', monospace">' + lvl + '</text></svg>';
 }
 
 // ---------- Иконки наград по типу ----------
 function pmgRewardIcon(r, size) {
   const s = size || 40, g = pmgUid('rw');
   const wrap = (inner, defs) => '<svg viewBox="0 0 40 40" width="' + s + '" height="' + s + '" aria-hidden="true"><defs>' +
-    '<linearGradient id="' + g + '" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6366F1"/><stop offset=".55" stop-color="#8B5CF6"/><stop offset="1" stop-color="#14B8A6"/></linearGradient>' + (defs || '') + '</defs>' + inner + '</svg>';
+    '<linearGradient id="' + g + '" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FF5FB8"/><stop offset=".55" stop-color="#7B5CFF"/><stop offset="1" stop-color="#2F4BFF"/></linearGradient>' + (defs || '') + '</defs>' + inner + '</svg>';
   const fc = { novice: '#94A3B8', bronze: '#C2793A', silver: '#CBD5E1', wave: '#38BDF8', gold: '#EAB308', platinum: '#E5E7EB', gradient: 'url(#' + g + ')' };
   switch (r.kind) {
     case 'frame': return wrap('<circle cx="20" cy="20" r="13" fill="none" stroke="' + (fc[r.id] || 'url(#' + g + ')') + '" stroke-width="5"/>' + (r.id === 'wave' ? '<circle cx="20" cy="20" r="13" fill="none" stroke="#fff" stroke-width="2" stroke-dasharray="6 6" opacity=".7"/>' : '') + '<circle cx="20" cy="20" r="7.5" fill="currentColor" opacity=".18"/>');
@@ -74,14 +91,14 @@ function pmgRewardIcon(r, size) {
       return wrap('<circle cx="20" cy="20" r="14" fill="' + tc[0] + '"/><path d="M20 6a14 14 0 0 1 0 28z" fill="' + tc[1] + '"/><circle cx="20" cy="20" r="14" fill="none" stroke="#fff" stroke-opacity=".5" stroke-width="1.5"/>');
     }
     case 'bgpack': return wrap('<rect x="6" y="6" width="28" height="28" rx="7" fill="url(#' + g + ')" opacity=".9"/>' +
-      (r.id === 'chem' ? '<path d="M17 12v6l-5 9h16l-5-9v-6" stroke="#fff" stroke-width="2" fill="none" stroke-linejoin="round"/>' : r.id === 'formulas' ? '<text x="20" y="25" text-anchor="middle" font-size="11" font-weight="700" fill="#fff" font-family="inherit">π·x²</text>' : '<circle cx="16" cy="17" r="4" fill="#fff"/><circle cx="27" cy="26" r="2" fill="#fff"/><circle cx="26" cy="12" r="1.3" fill="#fff"/>'));
+      (r.id === 'chem' ? '<path d="M17 12v6l-5 9h16l-5-9v-6" stroke="#fff" stroke-width="2" fill="none" stroke-linejoin="round"/>' : r.id === 'formulas' ? '<text x="20" y="25" text-anchor="middle" font-size="11" font-weight="700" fill="#fff" font-family="inherit">π·x²</text>' : '<path d="M20 10c1 6 3 8 9 10-6 2-8 4-9 10-1-6-3-8-9-10 6-2 8-4 9-10z" fill="#fff"/>'));
     case 'skin': return wrap('<rect x="7" y="9" width="26" height="22" rx="4" fill="' + (r.id === 'holo' ? 'url(#' + g + ')' : '#fff') + '" stroke="#94A3B8"/>' + (r.id === 'notebook' ? '<path d="M7 15h26M7 20h26M7 25h26" stroke="#93C5FD"/><path d="M12 9v22" stroke="#F87171"/>' : '<path d="M11 14l18 12" stroke="#fff" stroke-width="3" opacity=".6"/>'));
     case 'reaction': return '<span class="rw-emoji" style="font-size:' + Math.round(s * .55) + 'px">' + pmgReactionIcon(r.id, Math.round(s * .7)) + '</span>';
     case 'freeze': return wrap('<g stroke="#38BDF8" stroke-width="2.6" stroke-linecap="round"><path d="M20 6v28M8 13l24 14M8 27l24-14"/><path d="M16 8l4 3 4-3M16 32l4-3 4 3"/></g>');
     case 'aura': return wrap('<circle cx="20" cy="20" r="15" fill="url(#' + g + ')" opacity=".25"/><circle cx="20" cy="20" r="11" fill="none" stroke="url(#' + g + ')" stroke-width="2.4" stroke-dasharray="' + (r.id === 'orbit' ? '3 4' : '0') + '"/><circle cx="20" cy="20" r="6" fill="url(#' + g + ')"/>');
-    case 'badge': return pmgSeasonBadge(r.id, 'cosmos', s);
+    case 'badge': return pmgSeasonBadge(r.id, 'sticker', s);
     case 'anim': return wrap('<path d="M20 6l2.5 8.5L31 17l-8.5 2.5L20 28l-2.5-8.5L9 17l8.5-2.5z" fill="url(#' + g + ')"/><circle cx="31" cy="30" r="2" fill="#14B8A6"/><circle cx="9" cy="31" r="1.4" fill="#8B5CF6"/>');
-    case 'sticker': return pmgStickerSvg(r.n, 'cosmos', s);
+    case 'sticker': return pmgStickerSvg(r.n, r.theme || 'sticker', s);
   }
   return wrap('<circle cx="20" cy="20" r="12" fill="url(#' + g + ')"/>');
 }
@@ -130,38 +147,30 @@ function pmgMedalSvg(a, size, locked) {
       : '<circle cx="20" cy="20" r="18" fill="url(#' + g + ')"/><circle cx="20" cy="20" r="15" fill="none" stroke="#fff" stroke-opacity=".45" stroke-width="1.2"/>' + glyph) + '</svg>';
 }
 
-// ---------- Наклейки ----------
+// ---------- Наклейки альбома: 10 рисунков × 3 вида (обычная, с блёстками, голо) ----------
+// Подложка наклейки: 1–10 обычные, 11–20 с блёстками, 21–29 голографические.
+const PMG_STICKER_KINDS = ['smile', 'spark', 'fly', 'phone', 'cd', 'heart', 'bolt', 'pencil', 'ruler', 'five'];
 function pmgStickerSvg(n, theme, size) {
   const s = size || 56, g = pmgUid('st');
-  const pal = [['#6366F1', '#C7D2FE'], ['#8B5CF6', '#EDE9FE'], ['#14B8A6', '#CCFBF1'], ['#F59E0B', '#FEF3C7'], ['#EC4899', '#FCE7F3'], ['#0EA5E9', '#E0F2FE'], ['#EF4444', '#FEE2E2']];
-  const [c, bg] = pal[n % pal.length];
-  const kind = n % 10;
-  const art = {
-    cosmos: [
-      '<circle cx="32" cy="32" r="12" fill="' + c + '"/><circle cx="28" cy="28" r="3" fill="#fff" opacity=".5"/><circle cx="37" cy="36" r="2" fill="#fff" opacity=".4"/>',
-      '<path d="M32 14c6 5 7 14 4 22h-8c-3-8-2-17 4-22z" fill="' + c + '"/><circle cx="32" cy="26" r="3" fill="#fff"/><path d="M28 36l-5 6 6-2M36 36l5 6-6-2" fill="' + c + '"/><path d="M30 38h4l-2 8z" fill="#F97316"/>',
-      '<circle cx="32" cy="32" r="10" fill="' + c + '"/><ellipse cx="32" cy="33" rx="19" ry="5" fill="none" stroke="' + c + '" stroke-width="3" transform="rotate(-18 32 32)"/>',
-      '<circle cx="38" cy="26" r="7" fill="' + c + '"/><path d="M32 30L14 46M34 33L20 48M30 27L14 38" stroke="' + c + '" stroke-width="3" stroke-linecap="round" opacity=".6"/>',
-      '<rect x="27" y="27" width="10" height="10" rx="2" fill="' + c + '"/><path d="M14 26h12v12H14zM38 26h12v12H38z" fill="' + c + '" opacity=".6"/><path d="M32 27v-8M29 19h6" stroke="' + c + '" stroke-width="2"/>',
-      '<circle cx="32" cy="32" r="13" fill="#EF4444"/><circle cx="27" cy="28" r="3" fill="#B91C1C" opacity=".6"/><circle cx="37" cy="37" r="4" fill="#B91C1C" opacity=".5"/>',
-      '<g fill="' + c + '"><circle cx="16" cy="24" r="2.4"/><circle cx="24" cy="22" r="2.4"/><circle cx="31" cy="26" r="2.4"/><circle cx="38" cy="30" r="2.4"/><circle cx="40" cy="40" r="2.4"/><circle cx="50" cy="38" r="2.4"/><circle cx="50" cy="28" r="2.4"/></g><path d="M16 24l8-2 7 4 7 4 2 10 10-2v-10l-12 2" fill="none" stroke="' + c + '" stroke-width="1.4"/>',
-      '<circle cx="32" cy="28" r="11" fill="#fff" stroke="' + c + '" stroke-width="3"/><rect x="25" y="23" width="14" height="9" rx="4" fill="' + c + '"/><path d="M22 46c0-6 4-9 10-9s10 3 10 9" fill="' + c + '"/>',
-      '<path d="M18 38l22-12 3 6-22 12z" fill="' + c + '"/><path d="M30 38l-4 10M30 38l6 10" stroke="' + c + '" stroke-width="2.4"/><circle cx="44" cy="28" r="3" fill="' + c + '"/>',
-      '<path d="M32 16l4 10 10 1-8 7 3 10-9-6-9 6 3-10-8-7 10-1z" fill="' + c + '"/>'
-    ]
-  };
-  const list = art[theme] || art.cosmos;
-  return '<svg class="sticker-svg" viewBox="0 0 64 64" width="' + s + '" height="' + s + '" aria-hidden="true"><defs><filter id="' + g + '" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="1.5" stdDeviation="1.5" flood-opacity=".25"/></filter></defs>' +
-    '<g filter="url(#' + g + ')"><circle cx="32" cy="32" r="28" fill="#fff"/><circle cx="32" cy="32" r="24" fill="' + bg + '"/>' + list[kind] +
-    (n >= 10 ? '<circle cx="' + (14 + (n * 7) % 36) + '" cy="' + (14 + (n * 11) % 36) + '" r="1.6" fill="' + c + '"/>' : '') +
-    (n >= 20 ? '<circle cx="' + (50 - (n * 5) % 30) + '" cy="' + (48 - (n * 3) % 30) + '" r="1.3" fill="' + c + '"/>' : '') + '</g></svg>';
+  const kind = PMG_STICKER_KINDS[n % 10], tier = Math.floor(n / 10);
+  const c = [PMG_Y2K.pink, PMG_Y2K.yellow, PMG_Y2K.lime, PMG_Y2K.blue, PMG_Y2K.orange, PMG_Y2K.teal, PMG_Y2K.violet][n % 7];
+  const d = [PMG_Y2K.blue, PMG_Y2K.pink, PMG_Y2K.lime][n % 3];
+  const pixel = theme === 'pixel', chrome = theme === 'chrome';
+  const base = pixel ? '<rect x="5" y="5" width="54" height="54" fill="#fff" stroke="#17141F" stroke-width="3"/><rect x="9" y="9" width="46" height="46" fill="' + (tier === 2 ? 'url(#' + g + 'h)' : '#F2F4FF') + '"/>'
+    : '<circle cx="32" cy="32" r="29" fill="#fff" stroke="#17141F" stroke-width="2.5"/><circle cx="32" cy="32" r="24.5" fill="' + (tier === 2 || chrome ? 'url(#' + g + 'h)' : '#F4F6FF') + '"/>';
+  const spark = (x, y, r) => '<path d="M' + x + ' ' + (y - r) + 'Q' + x + ' ' + y + ' ' + (x + r) + ' ' + y + 'Q' + x + ' ' + y + ' ' + x + ' ' + (y + r) + 'Q' + x + ' ' + y + ' ' + (x - r) + ' ' + y + 'Q' + x + ' ' + y + ' ' + x + ' ' + (y - r) + 'Z"/>';
+  const glitter = tier >= 1 ? '<g fill="#fff" stroke="#17141F" stroke-width="1.3" stroke-linejoin="round">' + spark(14, 15, 6) + spark(51, 19, 5) + (tier === 2 ? spark(49, 50, 5.5) : '') + '</g>' : '';
+  return '<svg class="sticker-svg" viewBox="0 0 64 64" width="' + s + '" height="' + s + '" aria-hidden="true"' + (pixel ? ' shape-rendering="crispEdges"' : '') + '><defs>' +
+    '<linearGradient id="' + g + 'h" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFD6F0"/><stop offset=".35" stop-color="#C9F7FF"/><stop offset=".65" stop-color="#EFFFB8"/><stop offset="1" stop-color="#E3D6FF"/></linearGradient>' +
+    '<filter id="' + g + '" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="1.5" dy="2" stdDeviation="0" flood-color="#17141F" flood-opacity=".9"/></filter></defs>' +
+    '<g filter="url(#' + g + ')">' + base + '<g transform="translate(32 32) scale(.74) translate(-32 -32)">' + pmgY2kArt(kind, c, d) + '</g>' + glitter + '</g></svg>';
 }
 
 // ---------- Кольцо уровня ----------
 function pmgLevelRing(level, frac, size, stars) {
   const s = size || 112, r = 46, c = 2 * Math.PI * r, g = pmgUid('lr');
   return '<div class="lvl-ring" style="--s:' + s + 'px"><svg viewBox="0 0 104 104" width="' + s + '" height="' + s + '" aria-hidden="true">' +
-    '<defs><linearGradient id="' + g + '" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6366F1"/><stop offset=".55" stop-color="#8B5CF6"/><stop offset="1" stop-color="#14B8A6"/></linearGradient></defs>' +
+    '<defs><linearGradient id="' + g + '" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FF5FB8"/><stop offset=".55" stop-color="#7B5CFF"/><stop offset="1" stop-color="#2F4BFF"/></linearGradient></defs>' +
     '<circle cx="52" cy="52" r="' + r + '" fill="none" class="lr-track" stroke-width="8"/>' +
     '<circle cx="52" cy="52" r="' + r + '" fill="none" stroke="url(#' + g + ')" stroke-width="8" stroke-linecap="round" class="lr-arc" transform="rotate(-90 52 52)" stroke-dasharray="' + c.toFixed(1) + '" stroke-dashoffset="' + (c * (1 - Math.max(0, Math.min(1, frac)))).toFixed(1) + '" style="--c:' + c.toFixed(1) + '"/></svg>' +
     '<div class="lr-in"><small>уровень</small><b class="lr-num">' + level + '</b>' + (stars ? '<small class="lr-stars">★ ' + stars + '</small>' : '') + '</div></div>';

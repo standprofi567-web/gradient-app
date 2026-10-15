@@ -387,3 +387,184 @@
 @media (prefers-reduced-motion: reduce) {
   .orbit, .pl-in, .arena-stars, .arena-sun, .crown, .flame .fl-body, .flame .spark, .av::after, .tn.cur .tn-ic, .ob-art svg, .player-card.skin-holo { animation: none !important; }
 }
+
+/* ================= Gradient Pass: школьный Y2K =================
+   Только Pass, «Друзья», онбординг и окна наград. Тетрадь в клетку, наклейки с жёсткой обводкой,
+   линейка вместо дорожки наград, хромовые заголовки и пиксельные цифры. */
+:host, .pmg-page {
+  --y-line: #17141F; --y-shade: #17141F; --y-paper: #FFFFFF; --y-paper-2: #F4F6FF;
+  --y-grid: rgba(47, 75, 255, .09); --y-margin: rgba(255, 95, 184, .4);
+  --y-pink: #FF5FB8; --y-blue: #2F4BFF; --y-lime: #D4FF3A; --y-yellow: #FFE14D; --y-hl: #D4FF3A;
+  --y-ruler: linear-gradient(180deg, #FFF8C4, #FFEA80);
+  --y-px: "PMG Pixel", "PMG Onest", monospace;
+}
+:host([data-theme="dark"]), .pmg-page[data-theme="dark"] {
+  --y-line: #E9E6FF; --y-shade: #000; --y-paper: #1A1B27; --y-paper-2: #222435;
+  --y-grid: rgba(150, 170, 255, .07); --y-margin: rgba(255, 95, 184, .28); --y-hl: rgba(212, 255, 58, .3);
+  --y-ruler: linear-gradient(180deg, #3A3520, #2C2816);
+}
+@media (prefers-color-scheme: dark) {
+  :host(:not([data-theme="light"])), .pmg-page:not([data-theme="light"]) {
+    --y-line: #E9E6FF; --y-shade: #000; --y-paper: #1A1B27; --y-paper-2: #222435;
+    --y-grid: rgba(150, 170, 255, .07); --y-margin: rgba(255, 95, 184, .28); --y-hl: rgba(212, 255, 58, .3);
+    --y-ruler: linear-gradient(180deg, #3A3520, #2C2816);
+  }
+}
+
+/* Лист в клетку с полями */
+.sheet.tab-pass, .sheet.tab-friends {
+  background-image:
+    linear-gradient(90deg, transparent 30px, var(--y-margin) 30px, var(--y-margin) 32px, transparent 32px),
+    linear-gradient(var(--y-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--y-grid) 1px, transparent 1px);
+  background-size: 100% 100%, 22px 22px, 22px 22px;
+  background-attachment: local;
+}
+
+/* Карточки — листки с жёсткой тенью */
+.tab-pass .card, .tab-friends .card, .tab-pass .pass-hero {
+  background: var(--y-paper) !important; border: 2px solid var(--y-line) !important; border-radius: 12px !important;
+  box-shadow: 4px 4px 0 var(--y-shade) !important; -webkit-backdrop-filter: none; backdrop-filter: none;
+}
+.tab-pass .card:hover, .tab-friends .card:hover { box-shadow: 6px 6px 0 var(--y-shade) !important; }
+.tab-pass .card-head h3, .tab-friends .card-head h3, .tab-pass .card > h3, .tab-friends .card > h3 {
+  display: inline; padding: 0 4px; font-weight: 800; color: var(--ink);
+  background: linear-gradient(transparent 55%, var(--y-hl) 55%, var(--y-hl) 92%, transparent 92%);
+}
+.tab-pass .muted, .tab-friends .muted { color: var(--soft); }
+
+/* Кнопки и переключатели */
+.tab-pass .btn, .tab-friends .btn, .lvl-up .btn, .gains-card .btn {
+  border: 2px solid var(--y-line); border-radius: 10px; background: var(--y-paper); color: var(--ink); box-shadow: 2px 2px 0 var(--y-shade); font-weight: 700;
+  transition: transform .1s, box-shadow .1s;
+}
+.tab-pass .btn.primary, .tab-friends .btn.primary, .lvl-up .btn.primary, .gains-card .btn.primary { background: var(--y-pink); color: #17141F; }
+.tab-pass .btn:active, .tab-friends .btn:active, .lvl-up .btn:active, .gains-card .btn:active { transform: translate(2px, 2px); box-shadow: 0 0 0 var(--y-shade); }
+.tab-pass .btn[disabled], .tab-friends .btn[disabled] { opacity: .5; box-shadow: none; }
+.tab-pass .seg-ctl button, .tab-friends .seg-ctl button { border: 1.5px solid var(--y-line); border-radius: 8px; background: var(--y-paper); color: var(--ink); box-shadow: none; }
+.tab-pass .seg-ctl button.on, .tab-friends .seg-ctl button.on { background: #17141F; color: var(--y-lime); border-color: #17141F; box-shadow: 2px 2px 0 var(--y-pink); }
+.tab-pass .chip, .tab-friends .chip { border: 1.5px solid var(--y-line); border-radius: 6px; background: var(--y-paper); box-shadow: 2px 2px 0 var(--y-shade); color: var(--ink); }
+.tab-pass .chip.accent { background: var(--y-lime); color: #17141F; }
+
+/* Полоски-объявления — малярный скотч */
+.tab-pass .pass-banner {
+  border: 2px solid var(--y-line); border-radius: 4px; color: #17141F; transform: rotate(-.5deg); box-shadow: 3px 3px 0 var(--y-shade);
+  background: repeating-linear-gradient(-45deg, #FFF3A6 0 10px, #FFEA7F 10px 20px);
+}
+
+/* Шапка Pass */
+.tab-pass .pass-hero { position: relative; overflow: hidden; }
+.tab-pass .pass-hero::after {
+  content: ""; position: absolute; right: -20px; top: -20px; width: 150px; height: 150px; pointer-events: none;
+  background-image: radial-gradient(circle, var(--y-pink) 1.6px, transparent 2px); background-size: 9px 9px;
+  -webkit-mask: radial-gradient(circle at 100% 0, #000 20%, transparent 70%); mask: radial-gradient(circle at 100% 0, #000 20%, transparent 70%); opacity: .55;
+}
+.tab-pass .ph-name, .y2k-chrome {
+  font: 800 24px/1.1 var(--sans); letter-spacing: -.01em;
+  background: linear-gradient(180deg, #FFFFFF 0%, #C3CADA 38%, #5D6780 50%, #D9DEEA 72%, #FFFFFF 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  -webkit-text-stroke: .9px #17141F; paint-order: stroke fill; filter: drop-shadow(1.5px 1.5px 0 #17141F);
+}
+.tab-pass .lr-num { font: 700 40px/1 var(--y-px); color: var(--ink); background: none; -webkit-text-fill-color: currentColor; letter-spacing: 0; }
+.tab-pass .lr-in small { font: 400 11px/1.1 var(--y-px); text-transform: lowercase; }
+.tab-pass .lr-track { stroke: var(--y-paper-2); }
+.tab-pass .lvl-ring svg { filter: drop-shadow(2px 2px 0 var(--y-shade)); }
+.tab-pass .ph-xp b { font-family: var(--y-px); font-weight: 700; letter-spacing: 0; }
+.tab-pass .xpbar { height: 14px; border: 2px solid var(--y-line); border-radius: 4px; background: var(--y-paper-2); box-sizing: border-box; }
+.tab-pass .xpbar i { border-radius: 0; box-shadow: none; background: repeating-linear-gradient(90deg, var(--y-pink) 0 9px, transparent 9px 11px), var(--y-paper-2); }
+
+/* Награды — школьная линейка */
+.tab-pass .track-scroll { position: relative; margin: 6px 0 0; padding: 4px 12px 10px; border: 2px solid var(--y-line); border-radius: 8px; background: var(--y-ruler); box-shadow: 3px 3px 0 var(--y-shade); }
+.tab-pass .track { padding-top: 22px; }
+.tab-pass .track::before {
+  left: -12px; right: -12px; top: 0; height: 16px; margin: 0; border-radius: 0; background:
+    repeating-linear-gradient(90deg, var(--y-line) 0 1.5px, transparent 1.5px 50px) 0 0 / 100% 16px no-repeat,
+    repeating-linear-gradient(90deg, var(--y-line) 0 1px, transparent 1px 10px) 0 0 / 100% 9px no-repeat; opacity: .75;
+}
+.tab-pass .track::after { top: auto; bottom: 22px; left: 0; height: 10px; margin: 0; border-radius: 2px; background: var(--y-hl); opacity: .9; width: calc(100% * var(--fill) / 100); }
+.tab-pass .tn-ic { border: 2px dashed color-mix(in srgb, var(--y-line) 45%, transparent); background: var(--y-paper); border-radius: 50%; }
+.tab-pass .tn.big .tn-ic { border-radius: 10px; transform: rotate(-3deg); }
+.tab-pass .tn.big:nth-child(even) .tn-ic { transform: rotate(3deg); }
+.tab-pass .tn.got .tn-ic { border: 2px solid var(--y-line); box-shadow: 2px 2px 0 var(--y-shade); }
+.tab-pass .tn.cur .tn-ic { outline: 3px solid var(--y-pink); outline-offset: 2px; animation: y-wiggle 2.4s ease-in-out infinite; }
+.tab-pass .tn.sel .tn-ic { transform: translateY(-3px) rotate(0) scale(1.08); }
+.tab-pass .tn-l { font: 400 11px/1 var(--y-px); color: var(--ink-2); }
+.tab-pass .tn.cur .tn-l { color: var(--y-pink); font-weight: 700; }
+@keyframes y-wiggle { 0%, 100% { rotate: 0deg; } 25% { rotate: -4deg; } 75% { rotate: 4deg; } }
+.tab-pass .node-prev { border: 2px solid var(--y-line); border-radius: 10px; background: var(--y-paper-2); }
+
+/* Задания — список в тетради */
+.tab-pass .q-check { border: 2px solid var(--y-line); border-radius: 5px; }
+.tab-pass .quest.done .q-check { background: var(--y-lime); border-color: var(--y-line); }
+.tab-pass .quest.done .q-check .tick { stroke: #17141F; }
+.tab-pass .q-bar { height: 8px; border: 1.5px solid var(--y-line); border-radius: 3px; background: var(--y-paper-2); }
+.tab-pass .q-bar i { border-radius: 0; background: var(--y-blue); }
+.tab-pass .quest.done .q-bar i { background: var(--y-lime); }
+.tab-pass .q-xp { font-family: var(--y-px); color: var(--y-pink); }
+
+/* Альбом — наклейки чуть вкривь */
+.tab-pass .slot { border: 2px dashed color-mix(in srgb, var(--y-line) 35%, transparent); background: transparent; }
+.tab-pass .slot.got { border-color: transparent; }
+.tab-pass .slot.got:nth-child(4n+1) svg { transform: rotate(-6deg); }
+.tab-pass .slot.got:nth-child(4n+2) svg { transform: rotate(4deg); }
+.tab-pass .slot.got:nth-child(4n+3) svg { transform: rotate(-2deg); }
+.tab-pass .slot.got:nth-child(4n) svg { transform: rotate(7deg); }
+.tab-pass .slot-l { font-family: var(--y-px); }
+
+/* Сезоны */
+.season-card.th-sticker, .season-card.th-cosmos { background: radial-gradient(circle, rgba(255, 95, 184, .35) 1.4px, transparent 1.8px) 0 0 / 8px 8px, var(--y-paper) !important; }
+.season-card.th-pixel { background: linear-gradient(rgba(47, 75, 255, .15) 1px, transparent 1px) 0 0 / 6px 6px, linear-gradient(90deg, rgba(47, 75, 255, .15) 1px, transparent 1px) 0 0 / 6px 6px, var(--y-paper) !important; }
+.season-card.th-chrome { background: linear-gradient(135deg, #FFFFFF, #C3CADA 40%, #FFFFFF 55%, #9AA3B8) !important; color: #17141F; }
+.tab-pass .season-card { border: 2px solid var(--y-line); box-shadow: 3px 3px 0 var(--y-shade); }
+
+/* Стена стикеров группы (бывшая арена) — школьная доска */
+.arena.th-sticker, .arena.th-cosmos {
+  background:
+    radial-gradient(40% 30% at 20% 20%, rgba(255, 255, 255, .06), transparent 70%),
+    radial-gradient(35% 25% at 80% 75%, rgba(255, 255, 255, .05), transparent 70%),
+    #1E2B25;
+  border: 2px solid var(--y-line); box-shadow: 4px 4px 0 var(--y-shade);
+}
+.arena.th-pixel { background: repeating-linear-gradient(0deg, rgba(255, 255, 255, .03) 0 2px, transparent 2px 4px), linear-gradient(rgba(120, 140, 255, .12) 1px, transparent 1px) 0 0 / 16px 16px, linear-gradient(90deg, rgba(120, 140, 255, .12) 1px, transparent 1px) 0 0 / 16px 16px, #0E1240; border: 2px solid var(--y-line); }
+.arena.th-chrome { background: radial-gradient(60% 50% at 50% 40%, #2A2D3A, #08080C); border: 2px solid var(--y-line); }
+.arena.th-sticker .arena-stars, .arena.th-cosmos .arena-stars { opacity: .35; }
+.arena .orbit-ring { border: 2px dashed rgba(255, 255, 255, .18); }
+.arena .arena-sun, .th-deep .arena-sun, .th-neon .arena-sun { width: 14%; background: none; box-shadow: none; animation: y-spin 40s linear infinite; }
+.arena .arena-sun svg { width: 100%; height: 100%; display: block; filter: drop-shadow(3px 3px 0 #000); }
+@keyframes y-spin { to { transform: translate(-50%, -50%) rotate(360deg); } }
+.arena .pl .av { border-radius: 50%; box-shadow: 0 0 0 3px #fff, 4px 5px 0 3px #000 !important; transform: rotate(var(--rot, 0deg)); }
+.arena .pl:hover .av { transform: rotate(var(--rot, 0deg)) scale(1.08); }
+.arena .pl.sel .av { transform: rotate(0deg) scale(1.1); }
+.arena .pl.me .av { box-shadow: 0 0 0 3px var(--y-lime), 4px 5px 0 3px #000 !important; }
+.arena .pl-nick {
+  margin-top: 8px; padding: 1px 8px; border-radius: 1px; color: #17141F; font: 400 11.5px/1.5 var(--y-px);
+  background: rgba(255, 240, 160, .92); transform: translateX(-50%) rotate(-3deg); box-shadow: 1px 2px 0 rgba(0, 0, 0, .45);
+}
+.arena .pl-lv { font: 700 10.5px/16px var(--y-px); background: var(--y-pink); color: #17141F; border: 1.5px solid #17141F; height: 19px; border-radius: 5px; box-shadow: none; }
+.arena .pl-gain { background: var(--y-lime); color: #17141F; border: 1.5px solid #17141F; font-family: var(--y-px); }
+.arena .crown svg { filter: drop-shadow(1px 2px 0 #000); }
+.tab-friends .arena-wrap { padding: 8px !important; }
+
+/* Онбординг */
+.tab-friends .onboard .ob-art svg { filter: drop-shadow(3px 3px 0 var(--y-shade)); border-radius: 50%; box-shadow: 0 0 0 3px #fff; }
+.tab-friends .onboard .ob-art svg:nth-child(1) { transform: rotate(-8deg); }
+.tab-friends .onboard .ob-art svg:nth-child(2) { transform: rotate(10deg) translateY(10px); }
+.tab-friends .onboard .ob-art svg:nth-child(3) { transform: rotate(-4deg); }
+.onboard h2.y2k-chrome { font-size: 36px; margin: 14px 0 4px; }
+.ob-season { margin: 2px 0 12px !important; }
+.y2k-tape {
+  display: inline-block; padding: 3px 12px; transform: rotate(-2deg); color: #17141F; font: 400 14px/1.4 var(--y-px);
+  background: repeating-linear-gradient(-45deg, #FFF3A6 0 8px, #FFE883 8px 16px); border: 1.5px solid #17141F; box-shadow: 2px 2px 0 var(--y-shade);
+}
+.tab-friends .ob-points li::marker { content: "✦ "; color: var(--y-pink); }
+.tab-friends .code, .tab-friends .code-in { font-family: var(--y-px); letter-spacing: .12em; }
+.tab-friends .code { border: 2px solid var(--y-line) !important; border-radius: 6px !important; background: var(--y-lime) !important; color: #17141F !important; box-shadow: 2px 2px 0 var(--y-shade); }
+.tab-friends .grp-chip { border: 2px solid var(--y-line); box-shadow: 2px 2px 0 var(--y-shade); }
+.tab-friends .grp-chip.on { background: #17141F; color: var(--y-lime); }
+
+/* Окна «вот твои очки» и «новый уровень» */
+.gc-box, .lu-box { background: var(--y-paper) !important; border: 2px solid var(--y-line) !important; border-radius: 14px !important; box-shadow: 6px 6px 0 var(--y-shade) !important; }
+.gc-title, .lu-title { font-weight: 800; }
+.gc-total b, .lu-num { font-family: var(--y-px) !important; letter-spacing: 0 !important; }
+.lu-burst i { background: var(--y-pink) !important; }
+@media (prefers-reduced-motion: reduce) { .tab-pass .tn.cur .tn-ic, .arena .arena-sun { animation: none; } }

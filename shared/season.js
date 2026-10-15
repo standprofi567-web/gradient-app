@@ -1,14 +1,14 @@
 // Gradient Pass: сезоны, уровни, награды, достижения и задания. Только данные и чистые функции.
 
 const PMG_SEASONS = [
-  { id: 's0-test', name: 'Тестовый', theme: 'cosmos', starts: '2026-10-14', ends: '2026-11-03', scale: 1, test: true,
-    aura: 'Солнечная корона', album: 'Космос' },
-  { id: 's1-cosmos', name: 'Космос', theme: 'cosmos', starts: '2026-11-05', ends: '2026-12-30', scale: 1,
-    aura: 'Солнечная корона', album: 'Космос' },
-  { id: 's2-deep', name: 'Глубина', theme: 'deep', starts: '2027-01-11', ends: '2027-03-26', scale: 1.375,
-    aura: 'Биолюминесценция', album: 'Глубина' },
-  { id: 's3-neon', name: 'Неон', theme: 'neon', starts: '2027-04-05', ends: '2027-05-26', scale: 0.94,
-    aura: 'Голограмма', album: 'Неон' }
+  { id: 's0-test', name: 'Тестовый', theme: 'sticker', starts: '2026-10-14', ends: '2026-11-03', scale: 1, test: true,
+    aura: 'Голограмма', album: 'Стикербомб' },
+  { id: 's1-cosmos', name: 'Стикербомб', theme: 'sticker', starts: '2026-11-05', ends: '2026-12-30', scale: 1,
+    aura: 'Голограмма', album: 'Стикербомб' },
+  { id: 's2-deep', name: 'Пиксель', theme: 'pixel', starts: '2027-01-11', ends: '2027-03-26', scale: 1.375,
+    aura: 'Пиксельный нимб', album: 'Пиксель' },
+  { id: 's3-neon', name: 'Хром', theme: 'chrome', starts: '2027-04-05', ends: '2027-05-26', scale: 0.94,
+    aura: 'Хромовая звезда', album: 'Хром' }
 ];
 
 function pmgDateOf(iso) { const [y, m, d] = iso.split('-').map(Number); return new Date(y, m - 1, d); }
@@ -68,7 +68,7 @@ const PMG_REWARDS = {
   5: [{ kind: 'theme', id: 'mint', name: 'Тема «Мята»' }],
   8: [{ kind: 'freeze', id: 'freeze', name: 'Заморозка' }],
   10: [{ kind: 'frame', id: 'bronze', name: 'Рамка «Бронза»' }, { kind: 'title', id: 'in', name: 'Титул «В деле»' }, { kind: 'badge', id: 'b10', name: 'Бронзовый значок сезона' }],
-  12: [{ kind: 'bgpack', id: 'space', name: 'Пак фона «Космос»' }],
+  12: [{ kind: 'bgpack', id: 'space', name: 'Пак фона «Стикеры»' }],
   15: [{ kind: 'theme', id: 'sunset', name: 'Тема «Закат»' }, { kind: 'reaction', id: 'rocket', name: 'Реакция «Ракета»' }],
   18: [{ kind: 'freeze', id: 'freeze', name: 'Заморозка' }],
   20: [{ kind: 'frame', id: 'silver', name: 'Рамка «Серебро»' }, { kind: 'title', id: 'stubborn', name: 'Титул «Упорный»' }],
@@ -89,25 +89,26 @@ const PMG_REWARDS = {
 // 29 наклеек альбома «Космос» — на всех уровнях без крупной награды.
 const PMG_STICKER_LEVELS = [];
 for (let l = 1; l <= 50; l++) if (!PMG_REWARDS[l]) PMG_STICKER_LEVELS.push(l);
-const PMG_STICKERS = {
-  cosmos: ['Луна', 'Ракета', 'Сатурн', 'Комета', 'Спутник', 'Марс', 'Большая Медведица', 'Астронавт', 'Телескоп', 'Метеорит',
-    'Земля', 'НЛО', 'Звезда', 'Юпитер', 'Галактика', 'Луноход', 'Кассиопея', 'Солнце', 'Нептун', 'Чёрная дыра',
-    'Станция', 'Венера', 'Шлем', 'Орион', 'Туманность', 'Ракетоноситель', 'Уран', 'Затмение', 'Млечный Путь'],
-  deep: ['Медуза', 'Кит', 'Батискаф', 'Осьминог', 'Скат', 'Рыба-фонарь', 'Коралл', 'Морской конёк', 'Черепаха', 'Краб',
-    'Акула', 'Ракушка', 'Кальмар', 'Дельфин', 'Морская звезда', 'Жемчуг', 'Якорь', 'Подлодка', 'Нарвал', 'Анемон',
-    'Рыба-ёж', 'Косатка', 'Водолаз', 'Риф', 'Маяк', 'Мурена', 'Планктон', 'Затонувший корабль', 'Кракен'],
-  neon: ['Вывеска', 'Такси', 'Неоновый кот', 'Небоскрёб', 'Мотоцикл', 'Фонарь', 'Граффити', 'Кассета', 'Аркада', 'Трамвай',
-    'Мост', 'Пицца', 'Наушники', 'Скейт', 'Луна над крышей', 'Радио', 'Голограмма', 'Метро', 'Кофе', 'Билборд',
-    'Дрон', 'Кроссовки', 'Пальма', 'Светофор', 'Робот', 'Колесо обозрения', 'Диско-шар', 'Машина', 'Огни города']
-};
+// Имена наклеек: 10 рисунков (как в gfx.js) × обычная / с блёстками / голо.
+const PMG_STICKER_BASE = ['Смайлик', 'Звёздочка', 'Бабочка', 'Раскладушка', 'Диск', 'Сердечко', 'Молния', 'Карандаш', 'Линейка', 'Пятёрка'];
+function pmgStickerNames(prefix) {
+  const out = [];
+  for (let i = 0; i < 29; i++) {
+    const b = PMG_STICKER_BASE[i % 10], t = Math.floor(i / 10);
+    out.push((prefix ? prefix + ' ' + b.toLowerCase() : b) + (t === 1 ? ' с блёстками' : t === 2 ? ' голо' : ''));
+  }
+  return out;
+}
+const PMG_STICKERS = { sticker: pmgStickerNames(''), pixel: pmgStickerNames('Пиксельный').map((x) => x.replace('Пиксельный звёздочка', 'Пиксельная звёздочка').replace('Пиксельный бабочка', 'Пиксельная бабочка').replace('Пиксельный раскладушка', 'Пиксельная раскладушка').replace('Пиксельный молния', 'Пиксельная молния').replace('Пиксельный линейка', 'Пиксельная линейка').replace('Пиксельный пятёрка', 'Пиксельная пятёрка')), chrome: pmgStickerNames('Хром:') };
+PMG_STICKERS.cosmos = PMG_STICKERS.sticker;
 
 function pmgRewardsAt(level, season) {
   if (PMG_REWARDS[level]) {
     return PMG_REWARDS[level].map((r) => r.kind === 'aura' && r.id === 'season' ? { ...r, name: 'Аура «' + season.aura + '»' } : r);
   }
   const i = PMG_STICKER_LEVELS.indexOf(level);
-  const names = PMG_STICKERS[season.theme] || PMG_STICKERS.cosmos;
-  return [{ kind: 'sticker', id: 'st' + i, n: i, name: 'Наклейка «' + names[i] + '»' }];
+  const names = PMG_STICKERS[season.theme] || PMG_STICKERS.sticker;
+  return [{ kind: 'sticker', id: 'st' + i, n: i, theme: season.theme, name: 'Наклейка «' + names[i] + '»' }];
 }
 
 // Что из наград уже открыто (по уровню текущего сезона и сохранённому навсегда).

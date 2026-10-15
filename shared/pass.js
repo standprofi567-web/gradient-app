@@ -1,4 +1,4 @@
-// Gradient Pass: вкладки «Pass» и «Друзья», профиль, космос группы и анимации игры.
+// Gradient Pass: вкладки «Pass» и «Друзья», профиль, стена стикеров группы и анимации игры.
 
 const PMG_KIND_NAMES = {
   mark: 'Оценки', rush: 'Рывки', comeback: 'Камбэки', up: 'Рост прогноза', final: 'Итоговые', hw: 'Домашка', hwok: 'Домашка с оценкой',
@@ -68,7 +68,7 @@ function pmgPassView() {
   let h = '';
   if (S.phase === 'soon') h += '<div class="pass-banner">Сезон «' + pmgEsc(S.name) + '» начнётся ' + pmgShortIso(S.starts) + '.</div>';
   if (S.phase === 'over') h += '<div class="pass-banner">Сезон «' + pmgEsc(S.name) + '» закончился. ' + (S.next ? 'Следующий, «' + pmgEsc(S.next.name) + '», стартует ' + pmgShortIso(S.next.starts) + '.' : '') + '</div>';
-  if (S.test && S.phase !== 'over') h += '<div class="pass-banner test"><b>Тестовый сезон</b> до ' + pmgShortIso(S.ends) + ': проверяем вход, группу и рейтинг с друзьями. Настоящий сезон «Космос» стартует 5 ноября, очки обнулятся.</div>';
+  if (S.test && S.phase !== 'over') h += '<div class="pass-banner test"><b>Тестовый сезон</b> до ' + pmgShortIso(S.ends) + ': проверяем вход, группу и рейтинг с друзьями. Настоящий сезон «' + pmgEsc(S.next ? S.next.name : 'Стикербомб') + '» стартует ' + (S.next ? pmgShortIso(S.next.starts) : '5 ноября') + ' вместе со II четвертью, очки обнулятся.</div>';
 
   // Шапка
   const phaseName = { warmup: 'Разгон: задания дня ×1,25', final: 'Финишная прямая: задания недели ×1,5', main: '', over: 'Итоги сезона', soon: '' }[S.phase] || '';
@@ -131,9 +131,9 @@ function pmgNodePreview(G, l) {
 }
 
 function pmgRewardHint(r) {
-  return ({ frame: 'обводка аватара в рейтинге и в космосе группы', title: 'подпись под ником', theme: 'цвет акцента Gradient', bgpack: 'значки фона панели', skin: 'вид твоей карточки в группе',
-    reaction: 'новая реакция для ленты', freeze: 'спасает огонёк в пропущенный день', aura: 'свечение вокруг твоей планеты', badge: 'остаётся на полке навсегда',
-    avatar: 'аватар-планета', anim: 'эффект при новом уровне', sticker: 'в альбом сезона' })[r.kind] || '';
+  return ({ frame: 'обводка аватара в рейтинге и на стене группы', title: 'подпись под ником', theme: 'цвет акцента Gradient', bgpack: 'значки фона панели', skin: 'вид твоей карточки в группе',
+    reaction: 'новая реакция для ленты', freeze: 'спасает огонёк в пропущенный день', aura: 'свечение вокруг твоего стикера', badge: 'остаётся на полке навсегда',
+    avatar: 'аватар-стикер', anim: 'эффект при новом уровне', sticker: 'в альбом сезона' })[r.kind] || '';
 }
 
 // Задания
@@ -206,9 +206,9 @@ function pmgAchBlock(G) {
 }
 
 function pmgAlbumBlock(G) {
-  const names = PMG_STICKERS[G.season.theme] || PMG_STICKERS.cosmos;
+  const names = PMG_STICKERS[G.season.theme] || PMG_STICKERS.sticker;
   const n = PMG_STICKER_LEVELS.filter((l) => l <= G.level.level).length;
-  return '<section class="card album"><div class="card-head"><h3>Альбом «' + pmgEsc(G.season.theme === 'cosmos' ? 'Космос' : G.season.name) + '»</h3><span class="muted">' + n + ' из ' + PMG_STICKER_LEVELS.length + '</span></div><div class="album-grid">' +
+  return '<section class="card album"><div class="card-head"><h3>Альбом «' + pmgEsc(G.season.album || G.season.name) + '»</h3><span class="muted">' + n + ' из ' + PMG_STICKER_LEVELS.length + '</span></div><div class="album-grid">' +
     PMG_STICKER_LEVELS.map((l, i) => {
       const got = l <= G.level.level;
       return '<div class="slot' + (got ? ' got' : '') + '" style="--i:' + i + '" data-tip="' + pmgEsc((got ? names[i] : '???') + ' · уровень ' + l) + '">' + (got ? pmgStickerSvg(i, G.season.theme, 52) : '<span class="slot-l">' + l + '</span>') + '</div>';
@@ -264,8 +264,8 @@ function pmgFriendsView() {
 
 function pmgStartView() {
   const first = pmg.data && pmg.data.student && pmg.data.student.name ? pmg.data.student.name.split(/\s+/)[0] : '';
-  return '<section class="card onboard"><div class="ob-art">' + pmgAvatarSvg('planet-1', 72) + pmgAvatarSvg('planet-11', 56) + pmgAvatarSvg('planet-19', 64) + '</div>' +
-    '<h2>Gradient Pass с друзьями</h2><p>Космос группы, рейтинг недели, лента достижений и цель на всю группу. Друзья видят твой уровень, очки и достижения — <b>но не оценки</b>.</p>' +
+  return '<section class="card onboard"><div class="ob-art">' + pmgAvatarSvg('planet-1', 72) + pmgAvatarSvg('planet-6', 56) + pmgAvatarSvg('planet-16', 64) + '</div>' +
+    '<h2 class="y2k-chrome">Gradient Pass</h2><p class="ob-season"><span class="y2k-tape">сезон «' + pmgEsc((pmgGV() && pmgGV().season.name) || 'Стикербомб') + '»</span></p><p>Стена стикеров группы, рейтинг недели, лента достижений и цель на всю группу. Друзья видят твой уровень, очки и достижения — <b>но не оценки</b>.</p>' +
     '<ul class="ob-points"><li>Никаких паролей: вход создаётся сам, анонимно.</li><li>На сервер уходят только очки — без предметов, оценок, домашки и ФИО.</li><li>Удалить все свои данные можно одной кнопкой.</li></ul>' +
     '<label class="field"><span>Твой ник в группе</span><input class="in" data-act="nick-in" maxlength="16" placeholder="от 3 до 16 символов" value="' + pmgEsc(pmg.nickDraft != null ? pmg.nickDraft : first) + '"></label>' +
     (pmg.obError ? '<p class="err">' + pmgEsc(pmg.obError) + '</p>' : '') +
@@ -328,7 +328,8 @@ function pmgArena(players, data) {
   const prev = pmg.boards && pmg.boards[data.gid] && pmg.boards[data.gid].prevWeek;
   let html = '<section class="arena-wrap card"><div class="arena th-' + ((pmgGV() && pmgGV().season.theme) || 'cosmos') + '" style="--n:' + n + '">' +
     '<div class="arena-stars"></div>' + R.map((r) => '<span class="orbit-ring" style="--r:' + r + '%"></span>').join('') +
-    '<div class="arena-sun"><span></span></div>';
+    '<div class="arena-sun"><svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="chr" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff"/><stop offset=".35" stop-color="#9AA3B8"/><stop offset=".5" stop-color="#fff"/><stop offset=".7" stop-color="#6E7891"/><stop offset="1" stop-color="#E9ECF5"/></linearGradient></defs>' +
+    '<path d="M32 2c2.5 19 8 25 30 30-22 5-27.5 11-30 30-2.5-19-8-25-30-30 22-5 27.5-11 30-30z" fill="url(#chr)" stroke="#17141F" stroke-width="2.5" stroke-linejoin="round"/></svg></div>';
   orbits.forEach((list, oi) => {
     html += '<div class="orbit o' + oi + '">';
     list.forEach((p, k) => {
@@ -339,7 +340,8 @@ function pmgArena(players, data) {
       const crown = !p.sleep && sorted[0] === p && (p[key] || 0) > 0;
       const aura = p.equipped && p.equipped.aura && p.equipped.aura !== 'none' ? ' aura-' + p.equipped.aura : (p.level >= 50 ? ' aura-season' : p.level >= 40 ? ' aura-orbit' : p.level >= 25 ? ' aura-glow' : '');
       const grew = prev && prev[p.id] != null && p.week_xp > prev[p.id] ? p.week_xp - prev[p.id] : 0;
-      html += '<button class="pl' + (p.me ? ' me' : '') + (p.sleep ? ' sleep' : '') + aura + (p.streak >= 7 ? ' comet' : '') + (pmg.arenaSel === p.id ? ' sel' : '') + (pmg.arrive && p.me ? ' arrive' : '') + '" style="left:' + x.toFixed(2) + '%;top:' + y.toFixed(2) + '%;--dn:' + d + '" data-act="pl" data-v="' + p.id + '" aria-label="' + pmgEsc(p.nick) + ', уровень ' + p.level + '">' +
+      const rot = ((String(p.id).split('').reduce((a, ch) => (a * 31 + ch.charCodeAt(0)) >>> 0, 7) % 15) - 7);
+      html += '<button class="pl' + (p.me ? ' me' : '') + (p.sleep ? ' sleep' : '') + aura + (p.streak >= 7 ? ' comet' : '') + (pmg.arenaSel === p.id ? ' sel' : '') + (pmg.arrive && p.me ? ' arrive' : '') + '" style="left:' + x.toFixed(2) + '%;top:' + y.toFixed(2) + '%;--dn:' + d + ';--rot:' + rot + 'deg" data-act="pl" data-v="' + p.id + '" aria-label="' + pmgEsc(p.nick) + ', уровень ' + p.level + '">' +
         '<span class="pl-in">' + (crown ? '<span class="crown">' + pmgReactionIcon('crown', 22) + '</span>' : '') + pmgAvatar(p, d) +
         '<span class="pl-lv">' + p.level + '</span>' + (grew ? '<span class="pl-gain">+' + grew + '</span>' : '') + '<span class="pl-nick">' + pmgEsc(p.nick) + '</span></span></button>';
     });
@@ -456,7 +458,7 @@ function pmgProfileBlock() {
   const themeNames = { default: 'Gradient', mint: 'Мята', sunset: 'Закат', midnight: 'Полночь', aurora: 'Аврора' };
   const auraNames = { none: 'Без ауры', glow: 'Свечение', orbit: 'Орбита', season: G ? G.season.aura : 'Сезонная' };
   const skinNames = { default: 'Обычная', notebook: 'Тетрадь', holo: 'Голограмма' };
-  const bgNames = { glyphs: 'Учебные значки', space: 'Космос', chem: 'Химия', formulas: 'Формулы' };
+  const bgNames = { glyphs: 'Учебные значки', space: 'Стикеры', chem: 'Химия', formulas: 'Формулы' };
   const priv = { ...PMG_PRIVACY_DEFAULT, ...(prof.privacy || {}) };
   return '<label class="field card nick-card"><span>Ник</span><div class="row"><input class="in" data-act="nick-edit" maxlength="16" value="' + pmgEsc(prof.nick || '') + '"><button class="btn small" data-act="nick-save">Сохранить</button></div></label>' +
     pmgFaceBlock() +
