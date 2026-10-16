@@ -250,7 +250,8 @@ function pmgFriendsView() {
     (g.code ? '<div class="code-box"><span class="muted">Код приглашения</span><button class="code" data-act="copy-code" data-v="' + g.code + '" data-tip="Скопировать">' + g.code + '</button></div>' : '') + '</section>';
   if (!data) return h + '<section class="card"><div class="loader"><span></span><span></span><span></span></div><p class="muted">Загружаю группу…</p></section></div>';
   if (pmg.groupError) h += '<p class="err">' + pmgEsc(pmg.groupError) + '</p>';
-  const players = (data.board && data.board.players) || [];
+  // Свою фигурку и фото показываем сразу, не дожидаясь сервера
+  const players = ((data.board && data.board.players) || []).map((p) => p.me ? { ...p, equipped: { ...(p.equipped || {}), ...pmgEquipped() }, photoUrl: pmgProfile().photoLocal || p.photoUrl } : p);
   h += pmgArena(players, data);
   h += pmgPlayerCard(players);
   const fv = pmg.friendsView || 'board';
@@ -302,53 +303,96 @@ function pmgPrivacyRows(priv, act) {
 
 function pmgFaceBlock() {
   const prof = pmgProfile();
-  const me = { avatar: prof.avatar || 'planet-1', photoUrl: prof.photoLocal || null, equipped: pmgEquipped() };
+  const eq = pmgEquipped();
+  const me = { id: 'me', nick: prof.nick || 'я', avatar: prof.avatar || 'planet-1', photoUrl: prof.photoLocal || null, equipped: eq };
+  const body = eq.body && PMG_FIGS[eq.body] ? eq.body : pmgFigOf(me), pen = eq.pen && PMG_PENS[eq.pen] ? eq.pen : null;
   const unlockedAv = ['planet-1'].concat(Array.from({ length: 23 }, (_, i) => 'planet-' + (i + 2)));
-  return '<section class="card face"><h3>Лицо модельки</h3><div class="face-row">' + pmgAvatar(me, 84) +
-    '<div class="face-actions"><label class="btn"><input type="file" accept="image/*" data-act="photo-file" hidden>Загрузить фото</label>' +
+  return '<section class="card face"><h3>Твоя фигурка</h3><div class="face-row"><div class="face-fig">' + pmgFigure(me, 150, { fig: body }) + '</div>' +
+    '<div class="face-actions"><label class="btn"><input type="file" accept="image/*" data-act="photo-file" hidden>' + (prof.photoLocal ? 'Другое фото' : 'Загрузить фото') + '</label>' +
     (prof.photoLocal ? '<button class="btn" data-act="photo-delete">Убрать фото</button>' : '') +
-    '<p class="muted small">Фото обрежется в круг 512 × 512 прямо здесь, оригинал никуда не уходит. Видно только участникам твоих групп.</p></div></div>' +
-    '<div class="av-grid">' + unlockedAv.map((a) => '<button class="av-pick' + (me.avatar === a && !me.photoUrl ? ' on' : '') + '" data-act="avatar" data-v="' + a + '" aria-label="Аватар">' + pmgAvatarSvg(a, 40) + '</button>').join('') + '</div></section>';
+    '<p class="muted small">Фото станет головой фигурки на лесенке группы. Оно обрежется в круг прямо здесь, оригинал никуда не уходит. Видно только участникам твоих групп.</p></div></div>' +
+    '<h4 class="face-sub">Поза</h4><div class="fig-grid">' + Object.keys(PMG_FIGS).map((id) => '<button class="fig-pick' + (id === body ? ' on' : '') + '" data-act="equip" data-kind="body" data-v="' + id + '" aria-label="' + pmgEsc(PMG_FIGS[id].n) + '" data-tip="' + pmgEsc(PMG_FIGS[id].n) + '">' + pmgFigure(me, 74, { fig: id }) + '</button>').join('') + '</div>' +
+    '<h4 class="face-sub">Цвет ручки</h4><div class="pen-row">' + Object.entries(PMG_PENS).map(([id, [c, n]]) => '<button class="pen' + (id === (pen || '') ? ' on' : '') + '" style="--pc:' + c + '" data-act="equip" data-kind="pen" data-v="' + id + '" aria-label="' + pmgEsc(n) + '" data-tip="' + pmgEsc(n) + '"></button>').join('') + '</div>' +
+    (prof.photoLocal ? '' : '<h4 class="face-sub">Если без фото — голова-наклейка</h4><div class="av-grid">' + unlockedAv.map((a) => '<button class="av-pick' + (me.avatar === a ? ' on' : '') + '" data-act="avatar" data-v="' + a + '" aria-label="Наклейка">' + pmgAvatarSvg(a, 40) + '</button>').join('') + '</div>') + '</section>';
 }
 
-// Арена: планеты вокруг звезды. Размер — по XP недели, орбита — по месту.
+// ---------- Лесенка группы: фигурки с фото вместо головы стоят на ступеньках по месту ----------
+const PMG_PENS = { ink: ['#17141F', 'Чёрная ручка'], blue: ['#2F4BFF', 'Синяя ручка'], pink: ['#FF2E93', 'Розовая гелевая'], violet: ['#7A3BF0', 'Фиолетовая'], green: ['#0B9B6A', 'Зелёная'], orange: ['#F26A1B', 'Оранжевый маркер'], teal: ['#0891B2', 'Бирюзовая'], red: ['#E11D48', 'Красная, как у учителя'] };
+const PMG_FIG_POOL = ['walk', 'cross', 'easy', 'point', 'polka', 'rest', 'shirt', 'blazer', 'walk2', 'cross2', 'point2', 'rest2', 'dance2', 'blazer2'];
+function pmgFigOf(p, lead) {
+  const eq = p.equipped || {};
+  if (eq.body && PMG_FIGS[eq.body]) return eq.body;
+  if (lead) return 'dance';
+  return PMG_FIG_POOL[(pmgHash(String(p.id || p.nick)) >>> 0) % PMG_FIG_POOL.length];
+}
+function pmgPenOf(p) {
+  const eq = p.equipped || {};
+  if (eq.pen && PMG_PENS[eq.pen]) return PMG_PENS[eq.pen][0];
+  const keys = Object.keys(PMG_PENS);
+  return PMG_PENS[keys[(pmgHash(String(p.id || p.nick)) >>> 3) % keys.length]][0];
+}
+// Фигурка с головой-фото. h — высота в пикселях.
+function pmgFigure(p, h, opts) {
+  opts = opts || {};
+  const id = opts.fig || pmgFigOf(p, opts.lead), f = PMG_FIGS[id] || PMG_FIGS.walk;
+  const [x0, y0, w0, h0] = f.vb, k = h / h0, w = Math.round(w0 * k);
+  const H = PMG_FIG_HEAD, hs = Math.round(H.r * 2 * k);
+  const hx = ((H.cx - x0) / w0 * 100).toFixed(2), hy = ((H.cy - y0) / h0 * 100).toFixed(2);
+  return '<span class="fig" style="--fw:' + w + 'px;--fh:' + h + 'px;color:' + (opts.pen || pmgPenOf(p)) + '">' +
+    '<svg class="fig-body" viewBox="' + f.vb.join(' ') + '" width="' + w + '" height="' + h + '" aria-hidden="true">' + f.g + '</svg>' +
+    '<span class="fig-head" style="left:' + hx + '%;top:' + hy + '%">' + pmgAvatar(p, hs) + '</span></span>';
+}
+
+// rows: [{ p, v, label, sleep }] — по убыванию; рисуем слева направо снизу вверх, лидер справа на самой высокой ступеньке.
+function pmgStairs(rows, o) {
+  o = o || {};
+  const n = rows.length;
+  if (!n) return '';
+  const rise = n > 1 ? Math.min(26, Math.max(10, 150 / (n - 1))) : 0;
+  const base = 66, top = base + rise * (n - 1);
+  const theme = (pmgGV() && pmgGV().season.theme) || 'sticker';
+  const lead = rows[0] && !rows[0].sleep && rows[0].v > 0 ? rows[0].p.id : null;
+  const fresh = o.animate ? ' hop' : '';
+  let cols = '';
+  rows.slice().reverse().forEach((r, ri) => {
+    const place = n - ri, p = r.p, isLead = p.id === lead;
+    const hgt = r.sleep ? base : base + rise * (n - place);
+    const pl = r.sleep ? 'zz' : place;
+    cols += '<button class="st-col' + (p.me ? ' me' : '') + (r.sleep ? ' sleep' : '') + (isLead ? ' lead' : '') + (o.sel === p.id ? ' sel' : '') + (place <= 3 && !r.sleep ? ' p' + place : '') +
+      '" style="--i:' + ri + ';--bh:' + Math.round(hgt) + 'px" data-act="' + (o.act || 'pl') + '" data-v="' + pmgEsc(p.id) + '" aria-label="' + pmgEsc(p.nick) + ', ' + (r.sleep ? 'давно не заходил' : place + '-е место') + (r.label ? ', ' + pmgEsc(r.label) : '') + '">' +
+      '<span class="st-who">' + (isLead ? '<span class="st-crown">' + pmgReactionIcon('crown', 26) + '</span>' : '') +
+      (p.me ? '<span class="st-me">ты</span>' : '') + (r.gain ? '<span class="st-gain">+' + pmgFmtXp(r.gain) + '</span>' : '') + (r.sleep ? '<span class="st-zz">z<i>z</i><b>z</b></span>' : '') +
+      pmgFigure(p, o.figH || (pmg.mode === 'page' && typeof PMG_WEB === 'undefined' ? 136 : 116), { lead: isLead }) + '</span>' +
+      '<span class="st-step"><b class="st-n">' + pl + '</b><span class="st-nick">' + pmgEsc(p.nick) + '</span>' + (r.label ? '<span class="st-v">' + pmgEsc(r.label) + '</span>' : '') + '</span></button>';
+  });
+  return '<div class="stairs th-' + theme + fresh + '" style="--n:' + n + ';--top:' + Math.round(top) + 'px"><div class="st-scroll" data-stairs="' + pmgEsc(o.key || '') + '"><div class="st-row">' + cols + '</div></div></div>';
+}
+// После отрисовки: прокрутить лесенку так, чтобы было видно себя (или вернуть прокрутку, которую человек выбрал сам)
+function pmgStairsAfter(root) {
+  (root || document).querySelectorAll('.st-scroll').forEach((el) => {
+    const key = el.dataset.stairs || '';
+    pmg.stairsScroll = pmg.stairsScroll || {};
+    if (pmg.stairsScroll[key] != null) el.scrollLeft = pmg.stairsScroll[key];
+    else { const me = el.querySelector('.st-col.me') || el.querySelector('.st-col.lead'); if (me) el.scrollLeft = me.offsetLeft - el.clientWidth / 2 + me.offsetWidth / 2; }
+    el.addEventListener('scroll', () => { pmg.stairsScroll[key] = el.scrollLeft; }, { passive: true });
+  });
+}
+
+// Группа в расширении: лесенка по XP недели (после сезона — по XP за сезон)
 function pmgArena(players, data) {
   const over = pmgGV() && pmgGV().season.phase === 'over';
   const key = over ? 'xp' : 'week_xp';
   const now = Date.now();
-  const awake = players.filter((p) => now - new Date(p.last_seen).getTime() < 14 * 864e5 || p.me);
-  const asleep = players.filter((p) => !awake.includes(p));
-  const sorted = awake.slice().sort((a, b) => (b[key] || 0) - (a[key] || 0));
-  const lead = Math.max(1, sorted.length ? sorted[0][key] || 0 : 1);
-  const n = sorted.length, inner = Math.max(1, Math.ceil(n * 0.2)), mid = Math.ceil(n * 0.3);
-  const orbits = [[], [], []];
-  sorted.forEach((p, i) => orbits[i < inner ? 0 : i < inner + mid ? 1 : 2].push(p));
-  asleep.forEach((p) => orbits[2].push({ ...p, sleep: true }));
-  const R = [21, 32, 42];
   const prev = pmg.boards && pmg.boards[data.gid] && pmg.boards[data.gid].prevWeek;
-  let html = '<section class="arena-wrap card"><div class="arena th-' + ((pmgGV() && pmgGV().season.theme) || 'cosmos') + '" style="--n:' + n + '">' +
-    '<div class="arena-stars"></div>' + R.map((r) => '<span class="orbit-ring" style="--r:' + r + '%"></span>').join('') +
-    '<div class="arena-sun"><svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="chr" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff"/><stop offset=".35" stop-color="#9AA3B8"/><stop offset=".5" stop-color="#fff"/><stop offset=".7" stop-color="#6E7891"/><stop offset="1" stop-color="#E9ECF5"/></linearGradient></defs>' +
-    '<path d="M32 2c2.5 19 8 25 30 30-22 5-27.5 11-30 30-2.5-19-8-25-30-30 22-5 27.5-11 30-30z" fill="url(#chr)" stroke="#17141F" stroke-width="2.5" stroke-linejoin="round"/></svg></div>';
-  orbits.forEach((list, oi) => {
-    html += '<div class="orbit o' + oi + '">';
-    list.forEach((p, k) => {
-      const ang = (k / Math.max(1, list.length)) * 360 + oi * 37;
-      const rad = ang * Math.PI / 180;
-      const x = 50 + R[oi] * Math.cos(rad), y = 50 + R[oi] * Math.sin(rad) * 0.92;
-      const d = p.sleep ? 40 : Math.round(Math.max(48, Math.min(120, 48 + 72 * Math.sqrt(Math.max(0, p[key] || 0) / lead))));
-      const crown = !p.sleep && sorted[0] === p && (p[key] || 0) > 0;
-      const aura = p.equipped && p.equipped.aura && p.equipped.aura !== 'none' ? ' aura-' + p.equipped.aura : (p.level >= 50 ? ' aura-season' : p.level >= 40 ? ' aura-orbit' : p.level >= 25 ? ' aura-glow' : '');
-      const grew = prev && prev[p.id] != null && p.week_xp > prev[p.id] ? p.week_xp - prev[p.id] : 0;
-      const rot = ((String(p.id).split('').reduce((a, ch) => (a * 31 + ch.charCodeAt(0)) >>> 0, 7) % 15) - 7);
-      html += '<button class="pl' + (p.me ? ' me' : '') + (p.sleep ? ' sleep' : '') + aura + (p.streak >= 7 ? ' comet' : '') + (pmg.arenaSel === p.id ? ' sel' : '') + (pmg.arrive && p.me ? ' arrive' : '') + '" style="left:' + x.toFixed(2) + '%;top:' + y.toFixed(2) + '%;--dn:' + d + ';--rot:' + rot + 'deg" data-act="pl" data-v="' + p.id + '" aria-label="' + pmgEsc(p.nick) + ', уровень ' + p.level + '">' +
-        '<span class="pl-in">' + (crown ? '<span class="crown">' + pmgReactionIcon('crown', 22) + '</span>' : '') + pmgAvatar(p, d) +
-        '<span class="pl-lv">' + p.level + '</span>' + (grew ? '<span class="pl-gain">+' + grew + '</span>' : '') + '<span class="pl-nick">' + pmgEsc(p.nick) + '</span></span></button>';
-    });
-    html += '</div>';
-  });
-  html += '</div><p class="muted small arena-note">' + (over ? 'Итоги сезона: размер — по XP за весь сезон.' : 'Размер — по XP с понедельника, ближе к звезде — выше в рейтинге недели. В понедельник все снова равны.') + '</p></section>';
-  return html;
+  const awake = players.filter((p) => now - new Date(p.last_seen).getTime() < 14 * 864e5 || p.me);
+  const rows = awake.slice().sort((a, b) => (b[key] || 0) - (a[key] || 0)).map((p) => ({ p, v: p[key] || 0, label: pmgFmtXp(p[key] || 0) + ' XP',
+    gain: prev && prev[p.id] != null && p.week_xp > prev[p.id] ? p.week_xp - prev[p.id] : 0 }));
+  players.filter((p) => !awake.includes(p)).forEach((p) => rows.push({ p, v: 0, label: 'спит', sleep: true }));
+  const animate = pmg.stairsSeen !== data.gid;
+  pmg.stairsSeen = data.gid;
+  return '<section class="arena-wrap card stairs-card"><div class="card-head"><h3>' + (over ? 'Итоги сезона' : 'Лесенка недели') + '</h3><span class="muted small">нажми на фигурку</span></div>' +
+    pmgStairs(rows, { sel: pmg.arenaSel, key: 'g:' + data.gid, animate }) +
+    '<p class="muted small arena-note">' + (over ? 'Места — по XP за весь сезон.' : 'Чем больше XP с понедельника, тем выше ступенька. В понедельник все снова внизу.') + '</p></section>';
 }
 
 function pmgPlayerCard(players) {
@@ -357,7 +401,8 @@ function pmgPlayerCard(players) {
   const eq = p.equipped || {};
   const title = eq.title && eq.title !== 'none' ? PMG_TITLE_NAMES[eq.title] : '';
   const ach = (p.achievements || []).slice(0, 3).map((c) => PMG_ACHIEVEMENTS.find((a) => a.code === c)).filter(Boolean);
-  return '<section class="card player-card skin-' + pmgEsc(eq.skin || 'default') + '"><div class="pc-head">' + pmgAvatar(p, 56) + '<div><b>' + pmgEsc(p.nick) + '</b>' + (title ? '<small class="title">' + pmgEsc(title) + '</small>' : '') +
+  const top = players.slice().sort((a, b) => (b.week_xp || 0) - (a.week_xp || 0))[0];
+  return '<section class="card player-card skin-' + pmgEsc(eq.skin || 'default') + '"><div class="pc-head"><span class="pc-fig">' + pmgFigure(p, 96, { lead: top === p && (p.week_xp || 0) > 0 }) + '</span><div><b>' + pmgEsc(p.nick) + '</b>' + (title ? '<small class="title">' + pmgEsc(title) + '</small>' : '') +
     '<small class="muted">уровень ' + p.level + (p.stars ? ' · ★ ' + p.stars : '') + ' · ' + pmgFmtXp(p.week_xp) + ' XP за неделю · огонёк ' + p.streak + '</small></div>' +
     '<button class="icon-btn" data-act="pl" data-v="" aria-label="Закрыть">' + pmgIcon('close') + '</button></div>' +
     (ach.length ? '<div class="pc-ach">' + ach.map((a) => '<span data-tip="' + pmgEsc(a.desc) + '">' + pmgMedalSvg(a, 30) + pmgEsc(a.name) + '</span>').join('') + '</div>' : '') +
@@ -744,6 +789,7 @@ function pmgPassAfterRender() {
     if (cur) track.scrollLeft = cur.offsetLeft - track.clientWidth / 2 + cur.offsetWidth / 2;
     track.addEventListener('wheel', (e) => { if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) { track.scrollLeft += e.deltaY; e.preventDefault(); } }, { passive: false });
   }
+  pmgStairsAfter(pmg.root);
   pmgPlayGains();
 }
 

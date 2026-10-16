@@ -223,3 +223,15 @@ body.pmg-page.web-body::before {
 .w-pass.sheet { overflow: visible; padding: 4px 0 8px; margin: 0 -16px; padding-left: 16px; padding-right: 16px; container: sheet / inline-size; outline: none; }
 .panel.web > .gains-card, .panel.web > .lvl-up, .panel.web > .streak-scene, .panel.web > .crop-modal { position: fixed; z-index: 60; }
 .w-head .icon-btn.on { color: var(--accent); }
+
+/* Лесенка друзей */
+.f-stairs { padding: 10px !important; margin: 10px 0 12px; }
+.f-stairs .stairs { box-shadow: none; }
+.f-pcard { display: flex; align-items: flex-end; gap: 12px; position: relative; }
+.f-pcard .pc-fig { flex: none; }
+.f-pc-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; padding-bottom: 4px; }
+.f-pc-main b { font-size: 16px; }
+.f-pc-main .btn { align-self: flex-start; margin-top: 8px; }
+.f-pcard .icon-btn { position: absolute; top: 8px; right: 8px; }
+.w-face { margin-top: 18px; }
+.w-face .face-row { flex-wrap: wrap; }

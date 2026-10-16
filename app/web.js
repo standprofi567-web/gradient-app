@@ -84,7 +84,7 @@ async function pmgWebSync() {
 
 let pmgWebPushTimer = null;
 // Pass: состояние игры меняется — перерисовать и показать новые очки
-let pmgWebGameTimer = null;
+let pmgWebGameTimer = null, pmgWebFigTimer = null;
 chrome.storage.onChanged.addListener((c) => {
   if (c.pmg_game) {
     const old = pmg.game; pmg.game = c.pmg_game.newValue || null;
@@ -92,7 +92,11 @@ chrome.storage.onChanged.addListener((c) => {
     if (web.tab === 'pass' && (!vo || !vn || vo.xp !== vn.xp || vo.level.level !== vn.level.level || JSON.stringify(vo.quests) !== JSON.stringify(vn.quests) || vo.streak.days !== vn.streak.days)) pmgWebRender(true);
     if (web.tab === 'pass') pmgPlayGains();
   }
-  if (c.pmg_profile) { pmg.profile = c.pmg_profile.newValue || {}; if (web.tab === 'pass') pmgWebRender(true); }
+  if (c.pmg_profile) {
+    pmg.profile = c.pmg_profile.newValue || {};
+    if (web.tab === 'pass' || web.tab === 'friends') pmgWebRender(true);
+    if (web.tab === 'friends') { clearTimeout(pmgWebFigTimer); pmgWebFigTimer = setTimeout(() => pmgFriendsLoad(), 1500); }
+  }
   if (c.pmg_groups) pmg.groups = c.pmg_groups.newValue || [];
   if (c.pmg_boards) pmg.boards = c.pmg_boards.newValue || {};
   if (!web.applying && pmg.data && (c.pmg_done || c.pmg_actions)) { clearTimeout(pmgWebGameTimer); pmgWebGameTimer = setTimeout(() => pmgGameRun({ push: true }).catch(() => {}), 600); }
@@ -147,7 +151,7 @@ function pmgWebRender(keep) {
   root.innerHTML = '<div class="panel web">' + pmgWebHeader() +
     '<main class="w-main' + (web.enter ? ' enter' : '') + '" id="w-main">' + body + '</main>' +
     (web.tab === 'homework' && pmg.data ? '<button class="w-fab" data-act="own-new" aria-label="Добавить своё задание"><svg viewBox="0 0 24 24" width="26" height="26"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button>' : '') +
-    pmgWebNav() + pmgOwnHwForm() + pmgPhotoViewer() + (web.tab === 'pass' ? pmgCropModal() : '') + '</div>';
+    pmgWebNav() + pmgOwnHwForm() + pmgPhotoViewer() + (web.tab === 'pass' || web.tab === 'friends' ? pmgCropModal() : '') + '</div>';
   if (keepModal) root.querySelector('.panel').appendChild(keepModal);
   keepFx.forEach((el) => root.querySelector('.panel').appendChild(el));
   web.enter = false;
@@ -158,6 +162,8 @@ function pmgWebRender(keep) {
 pmgRender = function (keepScroll) { pmgWebRender(keepScroll !== false); };
 
 function pmgWebAfter() {
+  if (typeof pmgStairsAfter === 'function') pmgStairsAfter(document.getElementById('app'));
+  if (web.tab === 'pass' && typeof pmgPassAfterRender === 'function') pmgPassAfterRender();
   // Плавный счёт чисел, как в расширении
   if (pmgReduced()) return;
   document.querySelectorAll('[data-count-int]').forEach((el) => {
@@ -402,6 +408,7 @@ function pmgWebBind() {
       case 'f-start': { const nick = ((root.querySelector('[data-act="f-nick"]') || {}).value || '').trim(); if (nick.length < 3) { pmgToast('Ник — от 3 до 16 символов'); return; } const r = await pmgRpc('ensure_profile', { p_nick: nick, p_student_hash: null }).catch((e) => ({ ok: false, error: e.message })); if (r && r.ok) { await pmgRpc('update_profile', { p: { nick } }).catch(() => {}); pmg.profile = { ...(pmg.profile || {}), nick, created: true }; await pmgStorageSet({ pmg_profile: pmg.profile }); pmgFriendsLoad(true); } else pmgToast(pmgFriendErr(r && r.error)); return; }
       case 'f-join': { const code = ((root.querySelector('[data-act="f-code"]') || {}).value || '').trim().toUpperCase(); const norm = code.includes('-') ? code : code.slice(0, 3) + '-' + code.slice(3); const r = await pmgRpc('join_group', { p_code: norm, p_privacy: null }).catch((e) => ({ ok: false, error: e.message })); if (r && r.ok) { web.gid = r.group.id; pmgFriendsLoad(true); } else pmgToast(pmgFriendErr(r && r.error)); return; }
       case 'f-create': { const name = ((root.querySelector('[data-act="f-gname"]') || {}).value || '').trim(); if (name.length < 2) { pmgToast('Название — от 2 символов'); return; } const r = await pmgRpc('create_group', { p_name: name }).catch((e) => ({ ok: false, error: e.message })); if (r && r.ok) { web.gid = r.group.id; pmgFriendsLoad(true); } else pmgToast(pmgFriendErr(r && r.error)); return; }
+      case 'f-pl': web.fSel = v && v !== web.fSel ? v : null; pmgWebRender(true); return;
       case 'f-copy': try { await navigator.clipboard.writeText(v); pmgToast('Код скопирован'); } catch (_) { pmgToast(v); } return;
       case 'w-subj': if (web.tab !== 'grades') { web.tab = 'grades'; web.enter = true; history.replaceState(null, '', '#grades'); } web.gradeSubj = web.gradeSubj === +v ? null : +v; pmgWebRender(true); return;
       case 'report-kind': await pmgOpenReport(v); pmgWebReportShareBtn(); return;
@@ -530,11 +537,12 @@ function pmgWebFriends() {
     (g.code ? '<button class="f-code" data-act="f-copy" data-v="' + g.code + '">' + g.code + '</button>' : '') + '</div>';
   out += pmgDuelsBlock();
   const mode = web.fMode || 'steps';
-  const players = (web.board && web.board.players) || [];
+  const players = ((web.board && web.board.players) || []).map((p) => p.me && pmg.profile && pmg.profile.equipped ? { ...p, equipped: { ...(p.equipped || {}), ...pmg.profile.equipped } } : p);
   const anyAvg = players.some((p) => p.avg != null);
   out += '<div class="seg-ctl f-modes">' + [['steps', 'Шаги'], ['xp', 'XP'], ['study', 'Учёба']].concat(anyAvg ? [['avg', 'Средний']] : []).map(([k, l]) => '<button class="' + (mode === k ? 'on' : '') + '" data-act="f-mode" data-v="' + k + '">' + l + '</button>').join('') + '</div>';
   if (mode === 'steps') out += '<div class="seg-ctl mini f-per">' + [['day', 'Сегодня'], ['week', 'Неделя'], ['month', 'Месяц']].map(([k, l]) => '<button class="' + ((web.fPeriod || 'week') === k ? 'on' : '') + '" data-act="f-period" data-v="' + k + '">' + l + '</button>').join('') + '</div>';
   out += pmgBoardList(players, mode);
+  if (pmg.profile && pmg.profile.created) out += '<div class="w-face">' + pmgFaceBlock() + '</div>';
   return out;
 }
 
@@ -576,14 +584,23 @@ function pmgBoardList(players, mode) {
   };
   const me = players.find((p) => p.me);
   let h = '';
-  // Пьедестал
-  if (ranked.length >= 2) {
-    const top = ranked.slice(0, 3), order = top.length === 3 ? [top[1], top[0], top[2]] : [top[1], top[0]];
-    h += '<section class="f-podium">' + order.map((r) => {
-      const place = ranked.indexOf(r) + 1;
-      return '<div class="f-pod p' + place + (r.p.me ? ' me' : '') + '">' + (place === 1 ? '<span class="f-crown">' + pmgReactionIcon('crown', 22) + '</span>' : '') + pmgAvatar(r.p, place === 1 ? 72 : 58) +
-        '<b>' + pmgEsc(r.p.nick) + '</b><span>' + fmt(r) + '</span><i>' + place + '</i></div>';
-    }).join('') + '</section>';
+  // Лесенка: фигурки друзей с фото вместо головы, лидер на самой высокой ступеньке
+  if (ranked.length) {
+    const why = mode === 'steps' ? (r) => (!r.p.steps_on ? 'скрыто' : 'нет шагов') : mode === 'study' ? () => 'нет данных' : () => 'скрыто';
+    const srows = ranked.map((r) => ({ p: r.p, v: r.v, label: fmt(r) })).concat(rest.map((r) => ({ p: r.p, v: 0, label: why(r), sleep: true })));
+    const animate = web.stairsSeen !== web.gid + mode;
+    web.stairsSeen = web.gid + mode;
+    h += '<section class="card f-stairs">' + pmgStairs(srows, { sel: web.fSel, act: 'f-pl', key: 'w:' + web.gid + ':' + mode, animate }) + '</section>';
+    const sel = web.fSel && players.find((p) => p.id === web.fSel);
+    if (sel) {
+      const r = rows.find((x) => x.p === sel), place = ranked.indexOf(r) + 1;
+      const canDuel = mode === 'steps' && !sel.me && me && me.steps_on && sel.steps_on && !(web.duels && (web.duels.duels || []).some((d) => d.rival && d.rival.id === sel.id && d.week_start === web.duels.week_start));
+      h += '<section class="card f-pcard"><span class="pc-fig">' + pmgFigure(sel, 92, { lead: place === 1 }) + '</span><div class="f-pc-main"><b>' + pmgEsc(sel.nick) + (sel.me ? ' <small>ты</small>' : '') + '</b>' +
+        '<small class="muted">' + (place ? place + '-е место · ' + fmt(r) : 'нет данных') + '</small><small class="muted">уровень ' + sel.level + (sel.streak ? ' · огонёк ' + sel.streak : '') + '</small>' +
+        (place ? '<small class="muted">' + sub(r) + '</small>' : '') +
+        (canDuel ? '<button class="btn small primary" data-act="f-duel" data-v="' + sel.id + '">Вызвать на дуэль шагов</button>' : '') + '</div>' +
+        '<button class="icon-btn" data-act="f-pl" data-v="" aria-label="Закрыть">' + pmgIcon('close') + '</button></section>';
+    }
   }
   h += '<section class="f-list">' + ranked.map((r, i) => {
     const p = r.p, stale = mode === 'steps' && p.health_at && Date.now() - new Date(p.health_at) > 2 * 864e5;

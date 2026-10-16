@@ -4,7 +4,7 @@ set -e
 SRC=${SRC:-/home/claude/pomogator}
 cd "$(dirname "$0")/.."
 mkdir -p shared fonts
-for f in config calc homework charts season engine gfx ui pass health ownhw report net cloud game; do cp "$SRC/src/$f.js" shared/; done
+for f in config calc homework charts season engine gfx figures ui pass health ownhw report net cloud game; do cp "$SRC/src/$f.js" shared/; done
 cp "$SRC/ui.css" "$SRC/pass.css" shared/
 cp "$SRC"/fonts/*.woff2 fonts/
 VER=$(date -u +%Y%m%d%H%M)
