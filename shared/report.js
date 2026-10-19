@@ -336,3 +336,28 @@ function pmgNoteReport() {
   const G = pmg.game && pmg.game.view;
   if (G && typeof pmgGameMsg === 'function') pmgGameMsg('action', { key: 'report:' + G.season.id });
 }
+
+// ---------- Неделя: с понедельника против того же отрезка прошлой недели ----------
+function pmgWeekReport() {
+  const mon = pmgToday(); mon.setDate(mon.getDate() - ((mon.getDay() + 6) % 7));
+  const span = Math.round((pmgToday() - mon) / 864e5) + 1;
+  const prevEnd = new Date(mon); prevEnd.setDate(prevEnd.getDate() - 7 + span - 1);
+  const cur = pmgDaysBack(span), prev = pmgDaysBack(span, prevEnd);
+  const marksIn = (list) => (pmg.data && pmg.data.marks ? pmg.data.marks.filter((m) => { const d = pmgParseDate(m.date); return d && m.value && list.includes(pmgIso(d)); }) : []);
+  const mc = marksIn(cur), mp = marksIn(prev);
+  const hwIn = (list) => Object.values(pmg.done || {}).filter((t) => t && list.includes(pmgIso(new Date(t)))).length;
+  const rows = [
+    ['Средний балл', mc.length ? pmgAvg(mc.map((m) => m.value)) : null, mp.length ? pmgAvg(mp.map((m) => m.value)) : null, pmgFmtAvg],
+    ['Оценок', mc.length, mp.length, pmgFmtInt],
+    ['Пятёрок', mc.filter((m) => m.value === 5).length, mp.filter((m) => m.value === 5).length, pmgFmtInt],
+    ['Домашек отмечено', hwIn(cur), hwIn(prev), pmgFmtInt]
+  ];
+  const G = pmg.game && pmg.game.view;
+  if (G) rows.push(['XP за неделю', G.weekXp, null, pmgFmtInt]);
+  return '<section class="card hl-week"><div class="card-head"><h3>Неделя</h3><span class="muted">с понедельника против того же отрезка прошлой недели</span></div><table class="hl-tbl"><tbody>' +
+    rows.map(([l, a, b, f]) => {
+      const d = a != null && b != null ? a - b : null;
+      const cls = d == null || Math.abs(d) < 1e-9 ? '' : d > 0 ? 'up' : 'down';
+      return '<tr><th>' + l + '</th><td><b>' + (a == null ? '—' : f(a)) + '</b></td><td class="muted">' + (b == null ? '' : 'было ' + f(b)) + '</td><td class="' + cls + '">' + (d == null || !cls ? '' : (d > 0 ? '▲' : '▼')) + '</td></tr>';
+    }).join('') + '</tbody></table></section>';
+}

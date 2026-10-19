@@ -97,7 +97,7 @@ async function pmgGameRunOnce(opts) {
       const list = [];
       g.events.forEach((e) => { if (!sent[e.ref] || sent[e.ref].xp !== e.xp) list.push({ ref: e.ref, kind: e.kind, day: e.day, xp: e.xp }); });
       Object.keys(sent).forEach((ref) => { if (cur[ref] == null && sent[ref].xp !== 0) list.push({ ref, kind: sent[ref].kind, day: sent[ref].day, xp: 0 }); });
-      const st = { streak: g.streak.days, best_streak: g.streak.best, achievements: g.achievements, public_stats: { ...g.publicStats, goal: settings.stepGoal || 8000 } };
+      const st = { streak: g.streak.days, best_streak: g.streak.best, achievements: g.achievements, public_stats: { ...g.publicStats } };
       const need = list.length || !state.server || JSON.stringify(st) !== state.lastState || Date.now() - (state.syncedAt || 0) > 6 * 3600e3;
       if (need) {
         let res = null;
@@ -198,10 +198,11 @@ async function pmgGroupData(gid) {
 
 // Одна точка входа для страниц.
 async function pmgGameMessage(msg) {
+  if (msg.op && msg.op.startsWith('bridge-') && typeof pmgBridgeMessage === 'function') return pmgBridgeMessage(msg);
   switch (msg.op) {
     case 'run': await pmgGameRun({ push: true }); return { ok: true };
     case 'login': {
-      if (typeof pmgCloudEnabled === 'function' && await pmgCloudEnabled()) { await pmgCloudSync().catch(() => {}); pmgHealthPull().catch(() => {}); pmgDevicesSync('extension').catch(() => {}); }
+      if (typeof pmgCloudEnabled === 'function' && await pmgCloudEnabled()) { await pmgCloudSync().catch(() => {}); pmgDevicesSync('extension').catch(() => {}); }
       if (await pmgRecordLogin()) await pmgGameRun({ push: true });
       return { ok: true };
     }
@@ -227,10 +228,8 @@ async function pmgGameMessage(msg) {
       await pmgDevicesSync('extension').catch(() => {});
       return pmgPairCode();
     }
-    case 'health-key': return pmgHealthNewKey();
     case 'hw-photo-upload': return { ok: true, path: await pmgHwPhotoUpload(msg.dataUrl) };
     case 'hw-photo-urls': return { ok: true, urls: await pmgHwPhotoUrls(msg.paths || [], !(typeof PMG_WEB !== 'undefined' && PMG_WEB)) };
-    case 'health-pull': return pmgHealthPull();
     case 'devices': return pmgDevicesSync('extension');
     case 'device-revoke': return pmgDeviceRevoke(msg.id);
     case 'cloud-sync': return pmgCloudAll({ pull: typeof PMG_WEB !== 'undefined' && PMG_WEB });

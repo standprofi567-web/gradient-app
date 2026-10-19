@@ -412,7 +412,7 @@
 }
 
 /* Лист в клетку с полями */
-.sheet.tab-pass, .sheet.tab-friends {
+.sheet.tab-pass, .sheet.tab-friends, .sheet.tab-profile {
   background-image:
     linear-gradient(90deg, transparent 30px, var(--y-margin) 30px, var(--y-margin) 32px, transparent 32px),
     linear-gradient(var(--y-grid) 1px, transparent 1px),
@@ -422,28 +422,28 @@
 }
 
 /* Карточки — листки с жёсткой тенью */
-.tab-pass .card, .tab-friends .card, .tab-pass .pass-hero {
+.tab-pass .card, .tab-friends .card, .tab-pass .pass-hero, .tab-profile .card {
   background: var(--y-paper) !important; border: 2px solid var(--y-line) !important; border-radius: 12px !important;
   box-shadow: 4px 4px 0 var(--y-shade) !important; -webkit-backdrop-filter: none; backdrop-filter: none;
 }
-.tab-pass .card:hover, .tab-friends .card:hover { box-shadow: 6px 6px 0 var(--y-shade) !important; }
-.tab-pass .card-head h3, .tab-friends .card-head h3, .tab-pass .card > h3, .tab-friends .card > h3 {
+.tab-pass .card:hover, .tab-friends .card:hover, .tab-profile .card:hover { box-shadow: 6px 6px 0 var(--y-shade) !important; }
+.tab-pass .card-head h3, .tab-friends .card-head h3, .tab-pass .card > h3, .tab-friends .card > h3, .tab-profile .card-head h3, .tab-profile .card > h3 {
   display: inline; padding: 0 4px; font-weight: 800; color: var(--ink);
   background: linear-gradient(transparent 55%, var(--y-hl) 55%, var(--y-hl) 92%, transparent 92%);
 }
-.tab-pass .muted, .tab-friends .muted { color: var(--soft); }
+.tab-pass .muted, .tab-friends .muted, .tab-profile .muted { color: var(--soft); }
 
 /* Кнопки и переключатели */
-.tab-pass .btn, .tab-friends .btn, .lvl-up .btn, .gains-card .btn {
+.tab-pass .btn, .tab-friends .btn, .lvl-up .btn, .gains-card .btn, .tab-profile .btn {
   border: 2px solid var(--y-line); border-radius: 10px; background: var(--y-paper); color: var(--ink); box-shadow: 2px 2px 0 var(--y-shade); font-weight: 700;
   transition: transform .1s, box-shadow .1s;
 }
-.tab-pass .btn.primary, .tab-friends .btn.primary, .lvl-up .btn.primary, .gains-card .btn.primary { background: var(--y-pink); color: #17141F; }
-.tab-pass .btn:active, .tab-friends .btn:active, .lvl-up .btn:active, .gains-card .btn:active { transform: translate(2px, 2px); box-shadow: 0 0 0 var(--y-shade); }
-.tab-pass .btn[disabled], .tab-friends .btn[disabled] { opacity: .5; box-shadow: none; }
-.tab-pass .seg-ctl button, .tab-friends .seg-ctl button { border: 1.5px solid var(--y-line); border-radius: 8px; background: var(--y-paper); color: var(--ink); box-shadow: none; }
-.tab-pass .seg-ctl button.on, .tab-friends .seg-ctl button.on { background: #17141F; color: var(--y-lime); border-color: #17141F; box-shadow: 2px 2px 0 var(--y-pink); }
-.tab-pass .chip, .tab-friends .chip { border: 1.5px solid var(--y-line); border-radius: 6px; background: var(--y-paper); box-shadow: 2px 2px 0 var(--y-shade); color: var(--ink); }
+.tab-pass .btn.primary, .tab-friends .btn.primary, .lvl-up .btn.primary, .gains-card .btn.primary, .tab-profile .btn.primary { background: var(--y-pink); color: #17141F; }
+.tab-pass .btn:active, .tab-friends .btn:active, .lvl-up .btn:active, .gains-card .btn:active, .tab-profile .btn:active { transform: translate(2px, 2px); box-shadow: 0 0 0 var(--y-shade); }
+.tab-pass .btn[disabled], .tab-friends .btn[disabled], .tab-profile .btn[disabled] { opacity: .5; box-shadow: none; }
+.tab-pass .seg-ctl button, .tab-friends .seg-ctl button, .tab-profile .seg-ctl button { border: 1.5px solid var(--y-line); border-radius: 8px; background: var(--y-paper); color: var(--ink); box-shadow: none; }
+.tab-pass .seg-ctl button.on, .tab-friends .seg-ctl button.on, .tab-profile .seg-ctl button.on { background: #17141F; color: var(--y-lime); border-color: #17141F; box-shadow: 2px 2px 0 var(--y-pink); }
+.tab-pass .chip, .tab-friends .chip, .tab-profile .chip { border: 1.5px solid var(--y-line); border-radius: 6px; background: var(--y-paper); box-shadow: 2px 2px 0 var(--y-shade); color: var(--ink); }
 .tab-pass .chip.accent { background: var(--y-lime); color: #17141F; }
 
 /* Полоски-объявления — малярный скотч */
@@ -543,24 +543,25 @@
 .arena .pl-lv { font: 700 10.5px/16px var(--y-px); background: var(--y-pink); color: #17141F; border: 1.5px solid #17141F; height: 19px; border-radius: 5px; box-shadow: none; }
 .arena .pl-gain { background: var(--y-lime); color: #17141F; border: 1.5px solid #17141F; font-family: var(--y-px); }
 .arena .crown svg { filter: drop-shadow(1px 2px 0 #000); }
-.tab-friends .arena-wrap { padding: 8px !important; }
+.tab-friends .arena-wrap, .tab-profile .arena-wrap { padding: 8px !important; }
 
 /* Онбординг */
-.tab-friends .onboard .ob-art svg { filter: drop-shadow(3px 3px 0 var(--y-shade)); border-radius: 50%; box-shadow: 0 0 0 3px #fff; }
-.tab-friends .onboard .ob-art svg:nth-child(1) { transform: rotate(-8deg); }
-.tab-friends .onboard .ob-art svg:nth-child(2) { transform: rotate(10deg) translateY(10px); }
-.tab-friends .onboard .ob-art svg:nth-child(3) { transform: rotate(-4deg); }
+.tab-friends .onboard .ob-art svg, /* Онбординг */
+.tab-profile .onboard .ob-art svg { filter: drop-shadow(3px 3px 0 var(--y-shade)); border-radius: 50%; box-shadow: 0 0 0 3px #fff; }
+.tab-friends .onboard .ob-art svg:nth-child(1), .tab-profile .onboard .ob-art svg:nth-child(1) { transform: rotate(-8deg); }
+.tab-friends .onboard .ob-art svg:nth-child(2), .tab-profile .onboard .ob-art svg:nth-child(2) { transform: rotate(10deg) translateY(10px); }
+.tab-friends .onboard .ob-art svg:nth-child(3), .tab-profile .onboard .ob-art svg:nth-child(3) { transform: rotate(-4deg); }
 .onboard h2.y2k-chrome { font-size: 36px; margin: 14px 0 4px; }
 .ob-season { margin: 2px 0 12px !important; }
 .y2k-tape {
   display: inline-block; padding: 3px 12px; transform: rotate(-2deg); color: #17141F; font: 400 14px/1.4 var(--y-px);
   background: repeating-linear-gradient(-45deg, #FFF3A6 0 8px, #FFE883 8px 16px); border: 1.5px solid #17141F; box-shadow: 2px 2px 0 var(--y-shade);
 }
-.tab-friends .ob-points li::marker { content: "✦ "; color: var(--y-pink); }
-.tab-friends .code, .tab-friends .code-in { font-family: var(--y-px); letter-spacing: .12em; }
-.tab-friends .code { border: 2px solid var(--y-line) !important; border-radius: 6px !important; background: var(--y-lime) !important; color: #17141F !important; box-shadow: 2px 2px 0 var(--y-shade); }
-.tab-friends .grp-chip { border: 2px solid var(--y-line); box-shadow: 2px 2px 0 var(--y-shade); }
-.tab-friends .grp-chip.on { background: #17141F; color: var(--y-lime); }
+.tab-friends .ob-points li::marker, .tab-profile .ob-points li::marker { content: "✦ "; color: var(--y-pink); }
+.tab-friends .code, .tab-friends .code-in, .tab-profile .code, .tab-profile .code-in { font-family: var(--y-px); letter-spacing: .12em; }
+.tab-friends .code, .tab-profile .code { border: 2px solid var(--y-line) !important; border-radius: 6px !important; background: var(--y-lime) !important; color: #17141F !important; box-shadow: 2px 2px 0 var(--y-shade); }
+.tab-friends .grp-chip, .tab-profile .grp-chip { border: 2px solid var(--y-line); box-shadow: 2px 2px 0 var(--y-shade); }
+.tab-friends .grp-chip.on, .tab-profile .grp-chip.on { background: #17141F; color: var(--y-lime); }
 
 /* Окна «вот твои очки» и «новый уровень» */
 .gc-box, .lu-box { background: var(--y-paper) !important; border: 2px solid var(--y-line) !important; border-radius: 14px !important; box-shadow: 6px 6px 0 var(--y-shade) !important; }
@@ -691,3 +692,55 @@
 .pen.on { outline: 3px solid var(--y-lime); outline-offset: 2px; }
 .player-card .pc-head { align-items: flex-end; }
 .pc-fig { flex: none; display: block; padding: 0 6px; }
+
+/* ================= Профиль ================= */
+.prof { display: grid; gap: 14px; max-width: 760px; }
+.prof-hero { display: flex; gap: 20px; align-items: flex-end; padding: 16px 20px 0 !important; }
+.prof-fig { flex: none; padding: 6px 12px 0; border: 2px solid var(--y-line); border-bottom: 0; border-radius: 10px 10px 0 0;
+  background: linear-gradient(var(--y-grid) 1px, transparent 1px) 0 0 / 14px 14px, linear-gradient(90deg, var(--y-grid) 1px, transparent 1px) 0 0 / 14px 14px, var(--y-paper-2); }
+.prof-main { flex: 1; min-width: 0; padding-bottom: 16px; }
+.prof-nick { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin: 0 0 4px; font: 800 24px/1.2 var(--sans); color: var(--ink); overflow-wrap: anywhere; }
+.prof-nick .link { font-size: 13px; font-weight: 600; }
+.prof-nick-edit { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+.prof-nick-edit .in { flex: 1 1 160px; min-width: 0; }
+.prof-title { display: inline-block; margin-bottom: 8px; padding: 2px 8px; border-radius: 6px; background: var(--y-lime); color: #17141F; font: 700 12px/1.4 var(--sans); }
+.prof-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin: 6px 0 10px; }
+.prof-stats span { display: grid; gap: 2px; padding: 8px 10px; border: 1.5px solid var(--y-line); border-radius: 8px; background: var(--y-paper-2); font-size: 11.5px; color: var(--soft); line-height: 1.2; }
+.prof-stats b { font: 700 20px/1 var(--sans); color: var(--ink); font-variant-numeric: tabular-nums; }
+.prof-main p { margin: 0; }
+.prof-nav { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; }
+.prof-nav button { flex: 1 1 auto; }
+.look-nav { margin: 0 0 12px; }
+.look-photo { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+.look-photo label.btn { cursor: pointer; }
+.prof-look .fig-grid { grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); }
+.prof-look .fig-pick { height: auto; grid-template-rows: 1fr auto; gap: 2px; padding: 6px 2px 5px; }
+.fig-pick-art { display: grid; place-items: end center; height: 82px; overflow: hidden; }
+.fig-pick small { font-size: 11px; line-height: 1.15; color: var(--ink-2); text-align: center; }
+.pen-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 6px; }
+.pen-item { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border: 1.5px solid var(--y-line); border-radius: 8px; background: var(--y-paper); color: var(--ink); font: 600 13px var(--sans); text-align: left; cursor: pointer; }
+.pen-item i { flex: none; width: 22px; height: 22px; border-radius: 50%; background: var(--pc); border: 2px solid var(--y-line); }
+.pen-item.on { background: var(--y-lime); color: #17141F; box-shadow: 2px 2px 0 var(--y-shade); }
+.prof-rewards > p { margin-top: 0; }
+.rw-row { display: grid; grid-template-columns: 150px 1fr; gap: 12px; align-items: start; padding: 11px 0; border-top: 1.5px dashed color-mix(in srgb, var(--y-line) 25%, transparent); }
+.rw-label { display: grid; gap: 2px; }
+.rw-label b { color: var(--ink); font-size: 14px; }
+.rw-label small { font-size: 11.5px; line-height: 1.3; }
+.rw-opts { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.rw-opt { padding: 6px 11px; border: 1.5px solid var(--y-line); border-radius: 8px; background: var(--y-paper); color: var(--ink); font: 600 13px var(--sans); cursor: pointer; }
+.rw-opt.on { background: #17141F; color: var(--y-lime); border-color: #17141F; box-shadow: 2px 2px 0 var(--y-pink); }
+.rw-lock { font-size: 12px; color: var(--soft); white-space: nowrap; }
+@media (max-width: 560px) {
+  .prof-hero { flex-direction: column; align-items: center; text-align: center; padding-top: 14px !important; }
+  .prof-fig { order: 2; }
+  .prof-main { padding-bottom: 6px; width: 100%; }
+  .prof-nick { justify-content: center; }
+  .prof-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .rw-row { grid-template-columns: 1fr; gap: 6px; }
+}
+
+/* Лёгкие эффекты: значки, огоньки и рамки в списках не крутятся без конца (каждая такая анимация — отдельный слой в памяти) */
+:host([data-fx="lite"]) :is(.flame .fl-body, .flame .spark, .flame .fl-ring, .orbit, .pl-in, .ob-art svg, .tn.cur .tn-ic, .goal.done .goal-bar, .arena-sun, .st-col.lead .fig, .player-card.skin-holo),
+.pmg-page[data-fx="lite"] :is(.flame .fl-body, .flame .spark, .flame .fl-ring, .orbit, .pl-in, .ob-art svg, .tn.cur .tn-ic, .goal.done .goal-bar, .arena-sun, .st-col.lead .fig, .player-card.skin-holo) { animation: none !important; }
+:host([data-fx="lite"]) .av::after, .pmg-page[data-fx="lite"] .av::after { animation: none !important; }
+:host([data-fx="lite"]) .fig-head .av, .pmg-page[data-fx="lite"] .fig-head .av { box-shadow: 0 0 0 2.5px currentColor, 0 0 0 4.5px #fff !important; }

@@ -4,12 +4,40 @@
 const PMG_AUTH_KEY = 'pmg_auth';
 let pmgAuthPromise = null;
 
+// Запрос с ограничением по времени: без VPN сервер иногда не отвечает вовсе, а не отказывает.
+async function pmgFetchT(url, init, ms) {
+  const ctl = new AbortController();
+  const t = setTimeout(() => ctl.abort(), ms);
+  try { return await fetch(url, { ...init, signal: ctl.signal }); } finally { clearTimeout(t); }
+}
+
+// Дорога до сервера Gradient: сначала напрямую; если не вышло (нет VPN, обрыв, долго молчит) —
+// через мост в России, и следующие полчаса сразу через него.
+const pmgRoute = { via: null, until: 0, fails: 0 };
+function pmgSbBase() { return pmgRoute.via === 'bridge' && Date.now() < pmgRoute.until ? PMG_BRIDGE_URL + '/sb' : PMG_SB_URL; }
+async function pmgSbRequest(path, init) {
+  const viaBridge = () => pmgFetchT(PMG_BRIDGE_URL + '/sb' + path, init, 20000);
+  if (PMG_BRIDGE_URL && pmgRoute.via === 'bridge' && Date.now() < pmgRoute.until) {
+    try { return await viaBridge(); } catch (e) { pmgRoute.via = null; }
+  }
+  try {
+    const r = await pmgFetchT(PMG_SB_URL + path, init, 9000);
+    pmgRoute.fails = 0;
+    return r;
+  } catch (e) {
+    if (!PMG_BRIDGE_URL) throw e;
+    const r = await viaBridge();
+    pmgRoute.via = 'bridge'; pmgRoute.until = Date.now() + 30 * 60e3; pmgRoute.fails++;
+    return r;
+  }
+}
+
 async function pmgSbFetch(path, opts) {
   opts = opts || {};
   const headers = Object.assign({ apikey: PMG_SB_KEY }, opts.headers || {});
   if (opts.token) headers.Authorization = 'Bearer ' + opts.token;
   if (opts.json !== undefined) headers['Content-Type'] = 'application/json';
-  const res = await fetch(PMG_SB_URL + path, {
+  const res = await pmgSbRequest(path, {
     method: opts.method || (opts.json !== undefined || opts.body ? 'POST' : 'GET'),
     headers, body: opts.json !== undefined ? JSON.stringify(opts.json) : opts.body, cache: 'no-store'
   });
@@ -104,6 +132,8 @@ async function pmgDeletePhoto() {
 
 // Фото друзей: подписанные ссылки → картинки data: (страница дневника не грузит чужие адреса).
 const pmgPhotoCache = new Map();
+// Кэш картинок в памяти не растёт бесконечно: самые старые записи выбрасываем.
+function pmgCacheTrim(map, max) { while (map.size > max) map.delete(map.keys().next().value); }
 async function pmgPhotos(paths) {
   const need = [...new Set(paths.filter(Boolean))].filter((p) => !pmgPhotoCache.has(p));
   if (need.length) {
@@ -112,8 +142,8 @@ async function pmgPhotos(paths) {
     await Promise.all((signed || []).map(async (it) => {
       if (!it.signedURL) return;
       try {
-        const res = await fetch(PMG_SB_URL + '/storage/v1' + it.signedURL);
-        if (res.ok) pmgPhotoCache.set(it.path, await pmgBlobToDataUrl(await res.blob()));
+        const res = await pmgSbRequest('/storage/v1' + it.signedURL, {});
+        if (res.ok) { pmgPhotoCache.set(it.path, await pmgBlobToDataUrl(await res.blob())); pmgCacheTrim(pmgPhotoCache, 60); }
       } catch (_) { /* без фото покажем аватар */ }
     }));
   }

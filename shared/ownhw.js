@@ -66,7 +66,7 @@ async function pmgHwPhotoAdd(key, file) {
   const map = s.pmg_hw_photos || {};
   map[key] = (map[key] || []).concat([{ p: r.path, t: Date.now() }]);
   pmg.hwPhotos = map;
-  (pmg.photoUrls = pmg.photoUrls || {})[r.path] = dataUrl;
+  (pmg.photoUrls = pmg.photoUrls || {})[r.path] = await pmgMakeThumb(dataUrl);
   await pmgStorageSet({ pmg_hw_photos: map });
   return r.path;
 }
@@ -79,7 +79,35 @@ async function pmgHwPhotoHide(key, path) {
   await pmgStorageSet({ pmg_hw_photos: map });
 }
 
-// Догрузить ссылки на фото, которых ещё нет; после — перерисовать.
+// Превью — маленькая копия снимка (~10 КБ). Карточки домашки перерисовываются часто,
+// и с полными фото каждая перерисовка держала бы в памяти мегабайты картинок.
+const PMG_THUMB = 192;
+function pmgMakeThumb(src) {
+  return new Promise((resolve) => {
+    if (!src) { resolve(null); return; }
+    const img = new Image();
+    if (/^https?:/.test(src)) img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      try {
+        const k = Math.min(1, PMG_THUMB / Math.max(img.naturalWidth, img.naturalHeight));
+        const c = document.createElement('canvas');
+        c.width = Math.max(1, Math.round(img.naturalWidth * k)); c.height = Math.max(1, Math.round(img.naturalHeight * k));
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        resolve(c.toDataURL('image/jpeg', 0.75));
+      } catch (_) { resolve(src); }
+    };
+    img.onerror = () => resolve(null);
+    img.src = src;
+  });
+}
+
+// Полное фото — только для открытого просмотра, потом сразу отпускаем.
+async function pmgPhotoFull(path) {
+  const r = await pmgGameMsg('hw-photo-urls', { paths: [path] });
+  if (pmg.phView && pmg.phView.path === path) { pmg.phView.url = (r && r.ok && r.urls && r.urls[path]) || null; pmg.phView.failed = !pmg.phView.url; pmgRender(true, true); }
+}
+
+// Догрузить превью фото, которых ещё нет; после — перерисовать.
 let pmgPhotoLoading = false;
 async function pmgEnsurePhotoUrls(paths) {
   pmg.photoUrls = pmg.photoUrls || {};
@@ -89,7 +117,10 @@ async function pmgEnsurePhotoUrls(paths) {
   need.forEach((p) => { pmg.photoUrls[p] = null; });
   try {
     const r = await pmgGameMsg('hw-photo-urls', { paths: need });
-    if (r && r.ok) Object.assign(pmg.photoUrls, r.urls || {});
+    if (r && r.ok) {
+      const urls = r.urls || {};
+      await Promise.all(Object.keys(urls).map(async (p) => { pmg.photoUrls[p] = await pmgMakeThumb(urls[p]); }));
+    }
   } catch (_) { /* покажем заглушку */ }
   pmgPhotoLoading = false;
   pmgRender(true, true);
@@ -115,9 +146,9 @@ function pmgPhotoStrip(key, opts) {
 function pmgPhotoViewer() {
   const v = pmg.phView;
   if (!v) return '';
-  const u = (pmg.photoUrls || {})[v.path];
+  const u = v.url || null;
   return '<div class="ph-view" role="dialog" aria-label="Фото"><button class="ph-x" data-act="ph-close" aria-label="Закрыть">×</button>' +
-    (u ? '<img src="' + u + '" alt="">' : '<div class="loader"><span></span><span></span><span></span></div>') +
+    (u ? '<img src="' + u + '" alt="">' : v.failed ? '<p class="muted">Не получилось загрузить фото.</p>' : '<div class="loader"><span></span><span></span><span></span></div>') +
     '<div class="ph-bar">' + (u && u.startsWith('http') ? '<a class="btn small" href="' + u + '" target="_blank" rel="noopener">Открыть</a>' : '') +
     (pmg.confirm === 'ph:' + v.path ? '<button class="btn small danger" data-act="ph-hide">Точно убрать?</button>' : '<button class="btn small" data-act="ph-hide">Убрать фото</button>') + '</div></div>';
 }
@@ -133,8 +164,10 @@ function pmgOwnHwForm() {
   const chip = (iso, label) => '<button type="button" class="' + (f.due === iso ? 'on' : '') + '" data-act="own-due" data-v="' + iso + '">' + label + '</button>';
   return '<div class="own-sheet" role="dialog" aria-label="Своя домашка"><form class="own-form card" data-act="own-form">' +
     '<header><h3>' + (f.id && f.editing ? 'Изменить задание' : 'Своё задание') + '</h3><button type="button" class="icon-btn" data-act="own-cancel" aria-label="Закрыть">×</button></header>' +
-    '<label class="field"><span>Предмет</span><select class="in" data-act="own-subj"><option value="">Другое</option>' +
-      subs.map((s) => '<option value="' + s.id + '"' + (+f.subjectId === s.id ? ' selected' : '') + '>' + pmgEsc(s.name) + '</option>').join('') + '</select></label>' +
+    // Предметы — плашками, как четверти: всё видно сразу, без выпадающего списка
+    '<div class="field"><span>Предмет</span><div class="own-subjs" role="radiogroup" aria-label="Предмет">' +
+      subs.map((s) => '<button type="button" role="radio" aria-checked="' + (+f.subjectId === s.id) + '" class="own-subj' + (+f.subjectId === s.id ? ' on' : '') + '" data-act="own-subj" data-v="' + s.id + '">' + pmgEsc(s.name) + '</button>').join('') +
+      '<button type="button" role="radio" aria-checked="' + !f.subjectId + '" class="own-subj other' + (!f.subjectId ? ' on' : '') + '" data-act="own-subj" data-v="">Другое</button></div></div>' +
     (!f.subjectId ? '<label class="field"><span>Название</span><input class="in" data-act="own-subj-name" maxlength="40" placeholder="Например, Кружок" value="' + pmgEsc(f.subjectName || '') + '"></label>' : '') +
     '<label class="field"><span>Что сделать</span><textarea class="in" data-act="own-text" rows="3" maxlength="1000" placeholder="№ 245, выучить правило…">' + pmgEsc(f.text || '') + '</textarea></label>' +
     '<div class="field"><span>Когда сдавать</span><div class="seg-ctl mini own-due">' + chip(pmgIso(tom), 'Завтра') + chip(pmgIso(after), 'Послезавтра') +
@@ -165,6 +198,7 @@ async function pmgOwnHwAct(act, t) {
     }
     case 'own-cancel': pmg.ownForm = null; pmgRender(true, true); return true;
     case 'own-due': pmgOwnFormRead(); pmg.ownForm.due = v; pmgRender(true, true); return true;
+    case 'own-subj': pmgOwnFormRead(); pmg.ownForm.subjectId = v ? +v : null; pmgRender(true, true); return true;
     case 'own-save': {
       pmgOwnFormRead();
       const f = pmg.ownForm;
@@ -182,7 +216,7 @@ async function pmgOwnHwAct(act, t) {
       pmg.confirm = null;
       await pmgOwnHwRemove(pmg.ownForm.id); pmg.ownForm = null; pmgRender(true, true); return true;
     }
-    case 'ph-open': pmg.phView = { key: t.dataset.key, path: v }; pmg.confirm = null; pmgRender(true, true); return true;
+    case 'ph-open': pmg.phView = { key: t.dataset.key, path: v }; pmg.confirm = null; pmgRender(true, true); pmgPhotoFull(v); return true;
     case 'ph-close': pmg.phView = null; pmgRender(true, true); return true;
     case 'ph-hide': {
       const pv = pmg.phView; if (!pv) return true;
@@ -196,7 +230,6 @@ async function pmgOwnHwAct(act, t) {
 // Выбор файла фото (обработчик change).
 async function pmgOwnHwChange(e) {
   const t = e.target;
-  if (t.dataset.act === 'own-subj') { pmgOwnFormRead(); pmg.ownForm.subjectId = t.value ? +t.value : null; pmgRender(true, true); return true; }
   if (t.dataset.act === 'own-date') { pmg.ownForm.due = t.value; return true; }
   if (t.dataset.act !== 'ph-file' || !t.files || !t.files[0]) return false;
   const key = t.dataset.key;

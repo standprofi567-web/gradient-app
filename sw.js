@@ -1,5 +1,5 @@
 // Офлайн-кэш Gradient: сначала сеть (чтобы обновления приходили сразу), без сети — сохранённая копия.
-const VER = '202610160537';
+const VER = '202610192100';
 const CACHE = 'gradient-' + VER;
 self.addEventListener('install', (e) => { self.skipWaiting(); });
 self.addEventListener('activate', (e) => {

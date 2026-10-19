@@ -9,14 +9,12 @@ const PMG_PRIVACY = [
   ['core', 'Уровень, XP, огонёк, достижения', 'без этого нет игры', true],
   ['photo', 'Моё фото вместо планеты', 'иначе будет аватар'],
   ['shelf', 'Кубки и значки прошлых сезонов', 'полка в профиле'],
-  ['steps', 'Мои шаги в рейтинге', 'сумма за день, неделю и месяц'],
   ['study', 'Домашка и пропуски в рейтинге', 'только сколько сделано вовремя и дней без пропусков'],
-  ['duels', 'Дуэли шагов', 'друзья смогут вызвать тебя на неделю'],
   ['avg', 'Средний балл за четверть', 'в рейтинге и профиле'],
   ['finals', 'Прогноз итоговых', 'только сколько выходит 5, 4 и 3'],
   ['cheer', 'Уведомления «Подбодрить»', '']
 ];
-const PMG_PRIVACY_DEFAULT = { photo: true, shelf: true, avg: false, finals: false, duels: true, cheer: true, steps: true, study: true };
+const PMG_PRIVACY_DEFAULT = { photo: true, shelf: true, avg: false, finals: false, cheer: true, study: true };
 
 function pmgGameMsg(op, extra) {
   return new Promise((resolve) => {
@@ -254,12 +252,12 @@ function pmgFriendsView() {
   const players = ((data.board && data.board.players) || []).map((p) => p.me ? { ...p, equipped: { ...(p.equipped || {}), ...pmgEquipped() }, photoUrl: pmgProfile().photoLocal || p.photoUrl } : p);
   h += pmgArena(players, data);
   h += pmgPlayerCard(players);
-  const fv = pmg.friendsView || 'board';
-  h += '<nav class="seg-ctl sub-tabs">' + [['board', 'Рейтинг'], ['feed', 'Лента'], ['members', 'Участники'], ['me', 'Мой профиль']].map(([k, l]) => '<button class="' + (fv === k ? 'on' : '') + '" data-act="fview" data-v="' + k + '">' + l + '</button>').join('') + '</nav>';
+  const fv = pmg.friendsView && pmg.friendsView !== 'me' ? pmg.friendsView : 'board';
+  h += '<nav class="seg-ctl sub-tabs">' + [['board', 'Рейтинг'], ['feed', 'Лента'], ['members', 'Участники']].map(([k, l]) => '<button class="' + (fv === k ? 'on' : '') + '" data-act="fview" data-v="' + k + '">' + l + '</button>').join('') +
+    '<button data-act="tab" data-tab="profile">Мой профиль →</button></nav>';
   if (fv === 'board') h += pmgBoardBlock(players, data);
   if (fv === 'feed') h += pmgFeedBlock(data);
   if (fv === 'members') h += pmgMembersBlock(players, g);
-  if (fv === 'me') h += pmgProfileBlock(g);
   return h + '</div>';
 }
 
@@ -286,34 +284,18 @@ function pmgJoinView() {
       (j.error ? '<p class="err">' + pmgEsc(j.error) + '</p>' : '') + '</div>';
   }
   // Шаг: группа найдена → лицо и галочки
-  const pk = j.peek, prof = pmgProfile(), priv = j.privacy || (j.privacy = { ...PMG_PRIVACY_DEFAULT, ...(prof.privacy || {}) });
+  const pk = j.peek, prof = pmgProfile(), priv = j.privacy || (j.privacy = pmgPrivacyOf(prof));
   return '<div class="friends">' + '<button class="link" data-act="join-back">← Другой код</button>' +
     '<section class="card join-found"><div class="jf-head"><span class="jf-ic">' + pmgAvatarSvg('planet-9', 48) + '</span><div><h3>' + pmgEsc(pk.name) + '</h3>' +
     '<span class="muted">создатель ' + pmgEsc(pk.owner_nick || '—') + ' · ' + pk.members + ' ' + pmgPlural(pk.members, ['участник', 'участника', 'участников']) + '</span></div></div></section>' +
-    pmgFaceBlock() +
     '<section class="card"><h3>Что увидят друзья</h3><div class="priv-list">' + pmgPrivacyRows(priv, 'jpriv') + '</div>' +
-    '<p class="muted small">Отдельные оценки, пропуски, замечания и домашку не видит никто и никогда. Всё это можно поменять потом в профиле.</p></section>' +
+    '<p class="muted small">Отдельные оценки, пропуски, замечания и домашку не видит никто и никогда. Это, фото и фигурку можно поменять потом во вкладке «Профиль».</p></section>' +
     (j.error ? '<p class="err">' + pmgEsc(j.error) + '</p>' : '') +
     '<button class="btn primary big" data-act="join"' + (pmg.busy ? ' disabled' : '') + '>' + (pmg.busy ? 'Вступаю…' : 'Вступить') + '</button></div>';
 }
 
 function pmgPrivacyRows(priv, act) {
   return PMG_PRIVACY.map(([k, l, note, fixed]) => '<label class="priv' + (fixed ? ' fixed' : '') + '"><input type="checkbox" data-act="' + act + '" data-k="' + k + '"' + (fixed || priv[k] ? ' checked' : '') + (fixed ? ' disabled' : '') + '><span class="sw"></span><span class="pv-t">' + l + (note ? '<small>' + note + '</small>' : '') + '</span></label>').join('');
-}
-
-function pmgFaceBlock() {
-  const prof = pmgProfile();
-  const eq = pmgEquipped();
-  const me = { id: 'me', nick: prof.nick || 'я', avatar: prof.avatar || 'planet-1', photoUrl: prof.photoLocal || null, equipped: eq };
-  const body = eq.body && PMG_FIGS[eq.body] ? eq.body : pmgFigOf(me), pen = eq.pen && PMG_PENS[eq.pen] ? eq.pen : null;
-  const unlockedAv = ['planet-1'].concat(Array.from({ length: 23 }, (_, i) => 'planet-' + (i + 2)));
-  return '<section class="card face"><h3>Твоя фигурка</h3><div class="face-row"><div class="face-fig">' + pmgFigure(me, 150, { fig: body }) + '</div>' +
-    '<div class="face-actions"><label class="btn"><input type="file" accept="image/*" data-act="photo-file" hidden>' + (prof.photoLocal ? 'Другое фото' : 'Загрузить фото') + '</label>' +
-    (prof.photoLocal ? '<button class="btn" data-act="photo-delete">Убрать фото</button>' : '') +
-    '<p class="muted small">Фото станет головой фигурки на лесенке группы. Оно обрежется в круг прямо здесь, оригинал никуда не уходит. Видно только участникам твоих групп.</p></div></div>' +
-    '<h4 class="face-sub">Поза</h4><div class="fig-grid">' + Object.keys(PMG_FIGS).map((id) => '<button class="fig-pick' + (id === body ? ' on' : '') + '" data-act="equip" data-kind="body" data-v="' + id + '" aria-label="' + pmgEsc(PMG_FIGS[id].n) + '" data-tip="' + pmgEsc(PMG_FIGS[id].n) + '">' + pmgFigure(me, 74, { fig: id }) + '</button>').join('') + '</div>' +
-    '<h4 class="face-sub">Цвет ручки</h4><div class="pen-row">' + Object.entries(PMG_PENS).map(([id, [c, n]]) => '<button class="pen' + (id === (pen || '') ? ' on' : '') + '" style="--pc:' + c + '" data-act="equip" data-kind="pen" data-v="' + id + '" aria-label="' + pmgEsc(n) + '" data-tip="' + pmgEsc(n) + '"></button>').join('') + '</div>' +
-    (prof.photoLocal ? '' : '<h4 class="face-sub">Если без фото — голова-наклейка</h4><div class="av-grid">' + unlockedAv.map((a) => '<button class="av-pick' + (me.avatar === a ? ' on' : '') + '" data-act="avatar" data-v="' + a + '" aria-label="Наклейка">' + pmgAvatarSvg(a, 40) + '</button>').join('') + '</div>') + '</section>';
 }
 
 // ---------- Лесенка группы: фигурки с фото вместо головы стоят на ступеньках по месту ----------
@@ -493,27 +475,6 @@ function pmgMembersBlock(players, g) {
   return h + '</section>';
 }
 
-function pmgProfileBlock() {
-  const prof = pmgProfile(), eq = pmgEquipped(), G = pmgGV();
-  const un = pmgUnlocked(G ? G.level.level : 1);
-  const sel = (kind, names, label) => '<div class="eq-row"><span>' + label + '</span><div class="eq-opts">' + un[kind].map((id) => {
-    const on = (eq[kind] || un[kind][0]) === id;
-    return '<button class="eq' + (on ? ' on' : '') + '" data-act="equip" data-kind="' + kind + '" data-v="' + id + '">' + pmgEsc(names[id] || id) + '</button>';
-  }).join('') + '</div></div>';
-  const themeNames = { default: 'Gradient', mint: 'Мята', sunset: 'Закат', midnight: 'Полночь', aurora: 'Аврора' };
-  const auraNames = { none: 'Без ауры', glow: 'Свечение', orbit: 'Орбита', season: G ? G.season.aura : 'Сезонная' };
-  const skinNames = { default: 'Обычная', notebook: 'Тетрадь', holo: 'Голограмма' };
-  const bgNames = { glyphs: 'Учебные значки', space: 'Стикеры', chem: 'Химия', formulas: 'Формулы' };
-  const priv = { ...PMG_PRIVACY_DEFAULT, ...(prof.privacy || {}) };
-  return '<label class="field card nick-card"><span>Ник</span><div class="row"><input class="in" data-act="nick-edit" maxlength="16" value="' + pmgEsc(prof.nick || '') + '"><button class="btn small" data-act="nick-save">Сохранить</button></div></label>' +
-    pmgFaceBlock() +
-    '<section class="card equip"><h3>Награды на тебе</h3>' + sel('frame', PMG_FRAME_NAMES, 'Рамка') + sel('title', PMG_TITLE_NAMES, 'Титул') + sel('theme', themeNames, 'Тема') +
-    sel('aura', auraNames, 'Аура') + sel('skin', skinNames, 'Карточка') + sel('bgpack', bgNames, 'Фон') + '</section>' +
-    '<section class="card"><h3>Что видят друзья</h3><div class="priv-list">' + pmgPrivacyRows(priv, 'priv') + '</div></section>' +
-    '<section class="card danger-zone"><h3>Мои данные</h3><p class="muted">Удалит профиль, очки, достижения на сервере, фото и участие во всех группах. Очки на этом компьютере останутся.</p>' +
-    '<button class="btn' + (pmg.confirm === 'delete-me' ? ' danger' : '') + '" data-act="delete-me">' + (pmg.confirm === 'delete-me' ? 'Удалить навсегда? Нажми ещё раз' : 'Удалить мои данные') + '</button></section>';
-}
-
 // ---------- Загрузка группы ----------
 async function pmgLoadGroup(gid) {
   pmg.groupLoading = true;
@@ -660,7 +621,10 @@ async function pmgPassAct(act, t) {
     }
     case 'nick-save': {
       const nick = ((pmgQ('[data-act="nick-edit"]') || {}).value || '').trim();
-      if (nick.length >= 3) { await pmgSetProfile({ nick }, { nick }); if (pmgCurGroup()) pmgLoadGroup(pmgCurGroup()); }
+      if (nick.length < 3) { pmgToast('Ник — от 3 до 16 символов'); return true; }
+      pmg.nickEdit = false;
+      await pmgSetProfile({ nick }, { nick }); pmgRender(true, true);
+      if (pmgCurGroup()) pmgLoadGroup(pmgCurGroup());
       return true;
     }
     case 'avatar': {
@@ -686,7 +650,7 @@ async function pmgPassChange(e) {
   const t = e.target, act = t.dataset.act;
   if (act === 'jpriv') { pmg.join.privacy[t.dataset.k] = t.checked; return true; }
   if (act === 'priv') {
-    const priv = { ...PMG_PRIVACY_DEFAULT, ...(pmgProfile().privacy || {}), [t.dataset.k]: t.checked };
+    const priv = { ...pmgPrivacyOf(pmgProfile()), [t.dataset.k]: t.checked };
     await pmgSetProfile({ privacy: priv }, { privacy: priv });
     return true;
   }

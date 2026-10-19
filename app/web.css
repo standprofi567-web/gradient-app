@@ -48,7 +48,7 @@ body.pmg-page.web-body::before {
 /* Нижнее меню */
 .w-nav {
   position: fixed; left: 50%; bottom: 0; z-index: 30; transform: translateX(-50%);
-  width: min(760px, 100%); display: grid; grid-template-columns: repeat(5, 1fr);
+  width: min(760px, 100%); display: grid; grid-template-columns: repeat(6, 1fr);
   padding: 6px 6px calc(6px + env(safe-area-inset-bottom));
   background: color-mix(in srgb, var(--menu-bg) 80%, transparent);
   -webkit-backdrop-filter: blur(24px) saturate(180%); backdrop-filter: blur(24px) saturate(180%);
@@ -125,9 +125,6 @@ body.pmg-page.web-body::before {
 .w-subj-more p { margin: 10px 0 4px; }
 
 /* Шаги на главной */
-.w-steps-card { display: block; width: 100%; text-align: left; font: inherit; color: inherit; border: 1px solid var(--stroke); background: var(--glass-2); cursor: pointer; }
-.w-steps-top { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 8px; color: var(--ink-2); font-weight: 600; }
-.w-steps-top b { font: 700 24px/1 var(--sans); color: var(--ink); letter-spacing: -.02em; }
 .xpbar { height: 8px; border-radius: 99px; background: var(--hair-2); overflow: hidden; margin-bottom: 6px; }
 .xpbar i { display: block; height: 100%; border-radius: inherit; background: var(--brand); animation: w-bar 1s cubic-bezier(.25, .8, .25, 1) both; transform-origin: left; }
 @keyframes w-bar { from { transform: scaleX(0); } }
@@ -174,7 +171,6 @@ body.pmg-page.web-body::before {
 .f-grp b { color: var(--ink); font-size: 16px; }
 .f-code { margin-left: auto; padding: 5px 11px; border-radius: 10px; border: 1px dashed var(--accent); background: var(--accent-soft); color: var(--accent); font: 700 13px var(--sans); letter-spacing: .08em; }
 .f-modes { margin-bottom: 8px; }
-.f-per { margin-bottom: 12px; }
 .f-podium { display: grid; grid-template-columns: repeat(3, 1fr); align-items: end; gap: 8px; margin: 10px 0 16px; }
 .f-pod { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 14px 6px 10px; border-radius: 18px; background: var(--glass-3); border: 1px solid var(--hair); text-align: center; animation: w-in .5s cubic-bezier(.2, .9, .3, 1.2) both; }
 .f-pod.p1 { padding-top: 22px; background: radial-gradient(100% 80% at 50% 0%, color-mix(in srgb, #F59E0B 22%, transparent), transparent 70%), var(--glass-3); border-color: color-mix(in srgb, #F59E0B 45%, transparent); animation-delay: .08s; }
@@ -196,15 +192,6 @@ body.pmg-page.web-body::before {
 .f-main b small { font-size: 11px; color: var(--accent); font-weight: 700; margin-left: 4px; }
 .f-main small { display: block; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .f-val { font: 700 17px var(--sans); color: var(--ink); letter-spacing: -.02em; white-space: nowrap; }
-.f-duel-btn { width: 34px; height: 34px; border-radius: 10px; border: 1px solid var(--hair-2); background: none; font-size: 16px; color: var(--accent); flex: none; }
-.f-duels { padding: 14px 14px !important; }
-.f-du { padding: 10px 0; border-bottom: 1px solid var(--hair); }
-.f-du:last-child { border-bottom: 0; padding-bottom: 2px; }
-.f-du.pend { display: flex; align-items: center; gap: 10px; }
-.f-du-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 6px; font-size: 14px; color: var(--ink-2); }
-.f-du-top b { color: var(--ink); }
-.f-du-bar { height: 9px; border-radius: 99px; background: color-mix(in srgb, var(--m2) 45%, transparent); overflow: hidden; }
-.f-du-bar i { display: block; height: 100%; background: var(--brand); border-radius: 99px 0 0 99px; animation: w-bar 1s cubic-bezier(.25, .8, .25, 1) both; transform-origin: left; }
 .f-start .btn, .w-main .btn.big { width: 100%; }
 @keyframes crown { 50% { transform: translateY(-3px) rotate(6deg); } }
 .f-main b small { display: inline; }
@@ -233,5 +220,11 @@ body.pmg-page.web-body::before {
 .f-pc-main b { font-size: 16px; }
 .f-pc-main .btn { align-self: flex-start; margin-top: 8px; }
 .f-pcard .icon-btn { position: absolute; top: 8px; right: 8px; }
-.w-face { margin-top: 18px; }
-.w-face .face-row { flex-wrap: wrap; }
+
+.w-prof-link { display: flex; flex-direction: column; gap: 2px; width: 100%; margin-top: 12px; text-align: left; font: inherit; color: inherit; cursor: pointer; }
+button.f-row { width: 100%; font: inherit; color: inherit; text-align: left; cursor: pointer; }
+.f-row.on { border-color: var(--accent); }
+.w-prof { padding: 0 !important; background: none !important; }
+/* Лёгкие эффекты: шапка и меню без размытия — непрозрачные */
+.pmg-page[data-fx="lite"] .w-head { background: var(--page-bg, #EEF1F8); }
+.pmg-page[data-fx="lite"] .w-nav { background: var(--menu-bg); }

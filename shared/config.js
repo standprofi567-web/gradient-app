@@ -2,3 +2,8 @@
 // а что кому можно — решают правила доступа в базе.
 var PMG_SB_URL = 'https://abtksxajfrowkwhigsod.supabase.co';
 var PMG_SB_KEY = 'sb_publishable_Qa1KpCxbnEzEXZyDrLpEzA_SDZ4gt22';
+// Мост Gradient — свой сервер в России. Ходит в дневник за тебя (если разрешишь) и
+// пересылает запросы к серверу Gradient, когда без VPN он не открывается.
+// Пусто — моста нет: карточка «Вход в дневник» и вход с телефона скрыты.
+// Когда сервер развёрнут — впиши сюда 'https://bridge.klxshvpn.ru' и выпусти новую версию.
+var PMG_BRIDGE_URL = '';

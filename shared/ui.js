@@ -7,9 +7,12 @@ const PMG_DAY = 86400000;
 const PMG_WEEKDAYS = ['воскресенье', 'понедельник', 'вторник', 'среда', 'четверг', 'пятница', 'суббота'];
 const PMG_WD_SHORT = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
 const PMG_MONTHS = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
-const PMG_DEFAULT_SETTINGS = { threshold: 0.55, studentId: null, hwMode: 'assigned', notify: true, keepAlive: true, autoTab: true, theme: 'auto', bg: 'glyphs', v: 2 };
+const PMG_DEFAULT_SETTINGS = { threshold: 0.55, studentId: null, hwMode: 'assigned', notify: true, keepAlive: true, autoTab: true, theme: 'auto', bg: 'glyphs', fx: 'lite', v: 2 };
 const PMG_LOGO = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M16.95 7.05A7 7 0 1 0 19 12h-6" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><circle cx="16.95" cy="7.05" r="1.9" fill="currentColor"/></svg>';
-const PMG_TABS = [['overview', 'Сводка'], ['pass', 'Pass'], ['friends', 'Друзья'], ['devices', 'Устройства'], ['calendar', 'Календарь'], ['day', 'Уроки'], ['homework', 'Домашка'], ['subjects', 'Предметы'], ['absences', 'Пропуски'], ['finals', 'Итоги']];
+// Основные вкладки всегда на виду, редкие — под кнопкой «Ещё».
+const PMG_TABS = [['overview', 'Сводка'], ['homework', 'Домашка'], ['subjects', 'Предметы'], ['calendar', 'Календарь'], ['pass', 'Pass'], ['friends', 'Друзья'], ['profile', 'Профиль']];
+const PMG_TABS_MORE = [['absences', 'Пропуски'], ['finals', 'Итоги'], ['devices', 'Устройства']];
+const PMG_TABS_ALL = PMG_TABS.concat(PMG_TABS_MORE);
 
 const pmg = {
   root: null, mode: 'drawer', data: null, status: null,
@@ -101,7 +104,8 @@ function pmgIcon(name) {
     moon: '<path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>',
     auto: '<circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor"/>',
     left: '<path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
-    right: '<path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'
+    right: '<path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+    reload: '<path d="M4 4v6h6M20 20v-6h-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M19.5 9A8 8 0 0 0 5.6 6.6L4 10M4.5 15a8 8 0 0 0 13.9 2.4L20 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>'
   }[name];
   return '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">' + p + '</svg>';
 }
@@ -173,19 +177,28 @@ function pmgRender(keepScroll, quiet) {
   }
   pmg.quietRender = !!quiet;
   const period = pmgCurrentPeriod();
-  const views = { overview: pmgOverview, pass: pmgPassView, friends: pmgFriendsView, devices: pmgDevicesView, calendar: pmgCalendarView, day: pmgDayView, homework: pmgHomeworkView, subjects: pmgSubjectsView, absences: pmgAbsencesView, finals: pmgFinalsView };
+  const views = { overview: pmgOverview, pass: pmgPassView, friends: pmgFriendsView, profile: pmgProfileView, devices: pmgDevicesView, calendar: pmgCalendarView, homework: pmgHomeworkView, subjects: pmgSubjectsView, absences: pmgAbsencesView, finals: pmgFinalsView };
   const body = (views[pmg.tab] || pmgOverview)(period);
   const overlays = [...panel.querySelectorAll('.lvl-up, .gains-card, .streak-scene')];
   panel.innerHTML = pmgBgfx() + pmgHeader(period) + pmgXpLine() + pmgUpdateBar() +
-    '<div class="layout"><nav class="tabs" role="tablist"><span class="tab-sel" aria-hidden="true"></span>' +
-    PMG_TABS.map(([k, l]) => '<button role="tab" class="tab' + (pmg.tab === k ? ' on' : '') + '" aria-selected="' + (pmg.tab === k) + '" data-act="tab" data-tab="' + k + '">' + l + '</button>').join('') +
-    '</nav><main class="sheet' + (quiet ? ' quiet' : '') + ' tab-' + pmg.tab + '" tabindex="-1">' + body + '</main></div>' + pmgCropModal() +
+    '<div class="layout">' + pmgTabsNav() + '<main class="sheet' + (quiet ? ' quiet' : '') + ' tab-' + pmg.tab + '" tabindex="-1">' + body + '</main></div>' + pmgCropModal() +
     (typeof pmgOwnHwForm === 'function' ? pmgOwnHwForm() + pmgPhotoViewer() : '');
   const sheet = pmgQ('.sheet');
   if (scroll) sheet.scrollTop = scroll;
   if (keepModal) panel.appendChild(keepModal);
   overlays.forEach((o) => panel.appendChild(o));
   pmgAfterRender(quiet);
+}
+
+// Вкладки: основные + «Ещё». Если открыта редкая вкладка, кнопка «Ещё» показывает её название.
+function pmgTabsNav() {
+  const btn = ([k, l]) => '<button role="tab" class="tab' + (pmg.tab === k ? ' on' : '') + '" aria-selected="' + (pmg.tab === k) + '" data-act="tab" data-tab="' + k + '">' + l + '</button>';
+  const rare = PMG_TABS_MORE.find(([k]) => k === pmg.tab);
+  const open = !!pmg.moreOpen;
+  return '<nav class="tabs" role="tablist"><span class="tab-sel" aria-hidden="true"></span>' + PMG_TABS.map(btn).join('') +
+    '<div class="tab-more' + (open ? ' open' : '') + '"><button class="tab more-btn' + (rare ? ' on' : '') + '" data-act="tab-more" aria-expanded="' + open + '">' + (rare ? rare[1] : 'Ещё') +
+    '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>' +
+    (open ? '<div class="more-menu" role="menu">' + PMG_TABS_MORE.map(([k, l]) => '<button role="menuitem" class="' + (pmg.tab === k ? 'on' : '') + '" data-act="tab" data-tab="' + k + '">' + l + '</button>').join('') + '</div>' : '') + '</div></nav>';
 }
 
 // Полоска «Вышло обновление»: скачать zip → распаковать поверх папки → перезапустить.
@@ -220,9 +233,9 @@ function pmgEmptyState() {
   const st = pmg.status;
   if (st && !st.ok && st.error === 'auth') {
     return '<p class="lead">Нужно войти в дневник</p><p>Открой электронный дневник и войди. Дальше Gradient будет обновляться сам, даже когда сайт закрыт.</p>' +
-      '<div class="row-btns"><a class="btn primary" href="' + PMG_ORIGIN + '/" target="_blank" rel="noopener">Открыть дневник</a><button class="btn" data-act="refresh">Проверить ещё раз</button></div>';
+      '<div class="row-btns">' + (pmg.mode === 'drawer' ? '<button class="btn primary" data-act="page-reload">Перезагрузить страницу дневника</button>' : '<a class="btn primary" href="' + PMG_ORIGIN + '/" target="_blank" rel="noopener">Открыть дневник</a>') + '<button class="btn" data-act="refresh">Проверить ещё раз</button></div>';
   }
-  if (st && !st.ok) return '<p class="err">' + pmgEsc(st.error || 'Не получилось загрузить данные.') + '</p><button class="btn" data-act="refresh">Попробовать ещё раз</button>';
+  if (st && !st.ok) return '<p class="err">' + pmgEsc(st.error || 'Не получилось загрузить данные.') + '</p><div class="row-btns"><button class="btn" data-act="refresh">Попробовать ещё раз</button>' + (pmg.mode === 'drawer' ? '<button class="btn" data-act="page-reload">Перезагрузить страницу дневника</button>' : '') + '</div>';
   return '<div class="loader"><span></span><span></span><span></span></div><p>Собираю оценки и домашку…</p>';
 }
 
@@ -249,16 +262,17 @@ function pmgHeader(period) {
       tools += '<label class="period"><span class="sr">Ученик</span><select data-act="student">' + d.students.map((s) => '<option value="' + s.id + '"' + (s.id === d.student.id ? ' selected' : '') + '>' + pmgEsc(s.name) + '</option>').join('') + '</select></label>';
     }
   }
+  const st = pmg.status;
   const th = pmg.settings.theme || 'auto';
   const thName = { auto: 'Тема: как в системе', light: 'Тема: светлая', dark: 'Тема: тёмная' }[th];
   if (pmg.data) tools += '<button class="icon-btn" data-act="report" data-tip="Отчёт для родителей" aria-label="Отчёт для родителей">' + pmgIcon('report') + '</button>';
   tools += '<button class="icon-btn" data-act="theme-cycle" data-tip="' + thName + '. Нажми, чтобы сменить" aria-label="' + thName + '">' + pmgIcon(th === 'auto' ? 'auto' : th === 'light' ? 'sun' : 'moon') + '</button>';
   tools += '<button class="icon-btn' + (pmg.loading ? ' spin' : '') + '" data-act="refresh" data-tip="Обновить сейчас" aria-label="Обновить данные">' + pmgIcon('refresh') + '</button>';
+  if (pmg.mode === 'drawer' && st && !st.ok) tools += '<button class="icon-btn" data-act="page-reload" data-tip="Дневник завис или выкинул? Перезагрузить страницу" aria-label="Перезагрузить страницу дневника">' + pmgIcon('reload') + '</button>';
   if (pmg.mode === 'drawer') {
     tools += '<button class="icon-btn" data-act="open-app" data-tip="Открыть в отдельной вкладке" aria-label="Открыть в отдельной вкладке">' + pmgIcon('expand') + '</button>' +
       '<button class="icon-btn" data-act="close" aria-label="Закрыть панель">' + pmgIcon('close') + '</button>';
   }
-  const st = pmg.status;
   return '<header class="head"><div class="brand"><span class="brand-mark">' + PMG_LOGO + '</span><div class="brand-text"><div class="brand-name">Gradient</div>' +
     '<div class="who">' + who + '<span class="status' + (st && !st.ok ? ' bad' : '') + '">' + pmgEsc(pmgStatusText()) + '</span></div></div></div>' +
     '<div class="head-tools">' + tools + '</div></header>';
@@ -350,9 +364,12 @@ function pmgSettingsBlock() {
     '<p class="muted">Так же и для других оценок: при 4,55 четвёрка выходит от 3,55, тройка от 2,55.</p>' +
     '<div class="seg-ctl" role="group" aria-label="Уведомления"><span>Уведомлять о новых оценках и домашке</span>' +
     [[true, 'Да'], [false, 'Нет']].map(([v, l]) => '<button class="' + (pmg.settings.notify === v ? 'on' : '') + '" data-act="notify" data-v="' + v + '">' + l + '</button>').join('') + '</div>' +
-    '<p class="muted">Gradient сам проверяет дневник каждые 30 минут, пока открыт браузер.</p>' +
+    '<p class="muted">Gradient сам проверяет дневник каждые 20 минут, пока открыт браузер.</p>' +
     '<div class="seg-ctl" role="group" aria-label="Тема"><span>Тема</span>' +
     [['auto', 'Как в системе'], ['light', 'Светлая'], ['dark', 'Тёмная']].map(([v, l]) => '<button class="' + ((pmg.settings.theme || 'auto') === v ? 'on' : '') + '" data-act="theme" data-v="' + v + '">' + l + '</button>').join('') + '</div>' +
+    '<div class="seg-ctl" role="group" aria-label="Эффекты"><span>Эффекты</span>' +
+    [['lite', 'Лёгкие'], ['full', 'Все']].map(([v, l]) => '<button class="' + ((pmg.settings.fx || 'lite') === v ? 'on' : '') + '" data-act="fx" data-v="' + v + '">' + l + '</button>').join('') + '</div>' +
+    '<p class="muted">«Лёгкие» — без размытия, плавающих значков и бликов за курсором. Gradient так занимает в разы меньше памяти и не греет компьютер.</p>' +
     '<div class="seg-ctl" role="group" aria-label="Фон"><span>Фон</span>' +
     [['glyphs', 'Учебные значки'], ['none', 'Без фона']].map(([v, l]) => '<button class="' + ((pmg.settings.bg || 'glyphs') === v ? 'on' : '') + '" data-act="bg" data-v="' + v + '">' + l + '</button>').join('') + '</div>' +
     '<div class="seg-ctl" role="group" aria-label="Не выходить из дневника"><span>Не выходить из дневника</span>' +
@@ -361,51 +378,6 @@ function pmgSettingsBlock() {
     '<div class="seg-ctl" role="group" aria-label="Сам открывать дневник"><span>Сам открывать дневник</span>' +
     [[true, 'Да'], [false, 'Нет']].map(([v, l]) => '<button class="' + ((pmg.settings.autoTab !== false) === v ? 'on' : '') + '" data-act="autotab" data-v="' + v + '">' + l + '</button>').join('') + '</div>' +
     '<p class="muted">Если данные не пришли, Gradient сам откроет дневник в фоновой вкладке, обновит его и закроет, когда получит оценки.</p></section>';
-}
-
-// ---- Расписание дня ----
-function pmgLessonDays() {
-  const set = new Set((pmg.data.lessons || []).map((l) => pmgStartOfDay(pmgParseDate(l.from)).getTime()));
-  return [...set].sort((a, b) => a - b);
-}
-
-function pmgDayView() {
-  const days = pmgLessonDays();
-  if (!days.length) return '<p class="muted">Расписание пока не загружено.</p>';
-  const today = pmgToday().getTime();
-  if (pmg.day == null || !days.includes(pmg.day)) {
-    const now = new Date();
-    // После уроков показываем следующий день
-    const todays = pmg.data.lessons.filter((l) => pmgStartOfDay(pmgParseDate(l.from)).getTime() === today);
-    const lastEnd = todays.length ? Math.max(...todays.map((l) => pmgParseDate(l.to || l.from).getTime())) : 0;
-    pmg.day = days.find((d) => d > today || (d === today && now.getTime() < lastEnd)) || days[days.length - 1];
-  }
-  const idx = days.indexOf(pmg.day);
-  const day = new Date(pmg.day);
-  const lessons = pmg.data.lessons.filter((l) => pmgStartOfDay(pmgParseDate(l.from)).getTime() === pmg.day).sort((a, b) => pmgParseDate(a.from) - pmgParseDate(b.from));
-  const hw = pmgHomework();
-  const dueToday = hw.filter((i) => i.due && i.due.getTime() === pmg.day);
-  const now = Date.now();
-
-  let h = '<div class="day-nav"><button class="icon-btn" data-act="day" data-v="' + (days[idx - 1] || '') + '"' + (idx <= 0 ? ' disabled' : '') + ' aria-label="Предыдущий день">' + pmgIcon('left') + '</button>' +
-    '<h2 class="day-title">' + pmgEsc(pmgHumanDay(day)) + '</h2>' +
-    '<button class="icon-btn" data-act="day" data-v="' + (days[idx + 1] || '') + '"' + (idx >= days.length - 1 ? ' disabled' : '') + ' aria-label="Следующий день">' + pmgIcon('right') + '</button>' +
-    (pmg.day !== today && days.includes(today) ? '<button class="link" data-act="day" data-v="' + today + '">Сегодня</button>' : '') + '</div>';
-
-  h += '<ol class="lessons">' + lessons.map((l, li) => {
-    const from = pmgParseDate(l.from).getTime(), to = pmgParseDate(l.to || l.from).getTime();
-    const state = now >= from && now <= to ? ' now' : now > to ? ' over' : '';
-    const due = dueToday.filter((i) => i.subjectId === l.subjectId);
-    const given = hw.filter((i) => i.lessonId === l.id);
-    return '<li class="lesson' + state + '" style="--i:' + li + '"><div class="l-time"><b>' + (l.number || '') + '</b><span>' + pmgTime(l.from) + '</span><span>' + pmgTime(l.to) + '</span></div>' +
-      '<div class="l-body"><div class="l-head"><b>' + pmgEsc(l.subject) + '</b>' + (state === ' now' ? '<span class="pill">идёт сейчас</span>' : '') +
-      (l.marks || []).filter((m) => m.value).map((m) => pmgMarkChip(m.value, m.typeName)).join('') + '</div>' +
-      (l.topic ? '<p class="l-topic">' + pmgEsc(l.topic) + '</p>' : '') +
-      (due.length ? '<div class="l-hw"><span class="l-label">К этому уроку</span>' + due.map((i) => pmgHwItem(i)).join('') + '</div>' : '') +
-      (given.length ? '<div class="l-given"><span class="l-label">Задали</span>' + given.map((i) => '<p>' + (i.text ? pmgLinkify(i.text) : 'Задание во вложении') + (i.due ? ' <small>→ ' + pmgEsc(pmgShort(i.due)) + '</small>' : '') + '</p>').join('') + '</div>' : '') +
-      '</div></li>';
-  }).join('') + '</ol>';
-  return h;
 }
 
 // ---- Календарь оценок ----
@@ -587,13 +559,6 @@ function pmgHwSourceText(i) {
 }
 
 const PMG_TICK = '<svg class="tick" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7" pathLength="1"/></svg>';
-
-// Короткая строка задания — для вкладки «Уроки».
-function pmgHwItem(i) {
-  return '<div class="hwc compact' + (i.done ? ' done' : '') + '" data-key="' + pmgEsc(i.key) + '">' +
-    '<label class="hw-check"><input type="checkbox" data-act="done" data-key="' + pmgEsc(i.key) + '"' + (i.done ? ' checked' : '') + '><span class="check">' + PMG_TICK + '</span><span class="sr">Сделано</span></label>' +
-    '<p class="hwc-task"><span class="strike">' + (i.text ? pmgLinkify(i.text) : 'Задание во вложении') + '</span></p></div>';
-}
 
 // Карточка задания: шапка (предмет и когда сдавать), само задание, метки, справка «тема / задали / срок».
 function pmgHwCard(i, view, n) {
@@ -1049,7 +1014,7 @@ const PMG_GLARE = '.hero, .hw-hero, .abs-hero, .two > section, .card, .chart-box
 const PMG_TILT = '.fact, .hero, .hw-hero, .abs-hero';
 
 function pmgFxMove(e) {
-  if (pmgReduced()) return;
+  if (pmgReduced() || pmg.settings.fx !== 'full') return;
   const panel = pmgQ('.panel');
   if (!panel) return;
   const r = panel.getBoundingClientRect();
@@ -1093,8 +1058,9 @@ function pmgNoteNeed() {
   const G = pmg.game && pmg.game.view;
   if (G && G.weak && G.weak.id === pmg.subjectId) pmgGameMsg('action', { key: 'need:' + pmgIso(new Date()) });
 }
+// Задание «Загляни в домашку на завтра» засчитывается, когда открыта вкладка «Домашка».
 function pmgNoteTab() {
-  if (pmg.tab === 'day') pmgGameMsg('action', { key: 'sched:' + pmgIso(new Date()) });
+  if (pmg.tab === 'homework') pmgGameMsg('action', { key: 'sched:' + pmgIso(new Date()) });
 }
 function pmgXpLineUpdate() {
   const el = pmgQ('.xpline'), G = pmg.game && pmg.game.view;
@@ -1146,7 +1112,8 @@ function pmgBind() {
     if (act === 'upd-get') { chrome.runtime.sendMessage({ kind: 'pmg-update-download' }); pmg.updOpen = true; pmgRender(true, true); return; }
     if (act === 'upd-reload') { chrome.runtime.sendMessage({ kind: 'pmg-reload' }); t.disabled = true; t.textContent = 'Перезапускаю…'; setTimeout(() => location.reload(), 1500); return; }
     if (act === 'open-app') { chrome.runtime.sendMessage({ kind: 'pmg-open-app', tab: pmg.tab }); return; }
-    if (act === 'tab') { pmg.tab = t.dataset.tab; if (pmg.tab === 'homework') pmg.hwAnimate = true; pmgNoteTab(); pmgRender(); if (pmg.mode === 'page') history.replaceState(null, '', '#' + pmg.tab); return; }
+    if (act === 'tab-more') { pmg.moreOpen = !pmg.moreOpen; pmgRender(true, true); return; }
+    if (act === 'tab') { pmg.tab = t.dataset.tab; pmg.moreOpen = false; if (pmg.tab === 'devices' && pmg.settings.bridge) pmgGameMsg('bridge-status'); if (pmg.tab === 'homework') pmg.hwAnimate = true; pmgNoteTab(); pmgRender(); if (pmg.mode === 'page') history.replaceState(null, '', '#' + pmg.tab); return; }
     if (act === 'subject') { pmg.tab = 'subjects'; pmg.subjectId = +t.dataset.id; pmgNoteNeed(); pmgRender(); return; }
     if (act === 'pick') { pmg.subjectId = +t.dataset.id; pmgNoteNeed(); pmgRender(true); return; }
     if (act === 'target') { pmg.target[pmg.subjectId] = +v; pmgRender(true); return; }
@@ -1162,7 +1129,6 @@ function pmgBind() {
       return;
     }
     if (act === 'hwview') { pmg.hwView = v; pmg.hwAnimate = true; pmgRender(true); return; }
-    if (act === 'day') { if (v) { pmg.day = +v; pmgRender(); } return; }
     if (act === 'cal-day') { pmgCalSelect(+v); return; }
     if (act === 'cal-month') { pmgCalShiftMonth(+v); return; }
     if (act === 'cal-today') { const d = pmgToday(); pmg.calMonth = new Date(d.getFullYear(), d.getMonth(), 1).getTime(); pmg.calDay = d.getTime(); pmg.calDir = d.getTime() > pmg.calMonth ? 'from-right' : 'from-left'; pmgRender(true); return; }
@@ -1172,12 +1138,15 @@ function pmgBind() {
     if (act === 'theme') { pmg.settings.theme = v; pmgApplyTheme(); await pmgSaveSettings(); return; }
     if (act === 'theme-cycle') { const order = ['auto', 'light', 'dark']; pmg.settings.theme = order[(order.indexOf(pmg.settings.theme || 'auto') + 1) % 3]; pmgApplyTheme(); await pmgSaveSettings(); return; }
     if (act === 'bg') { pmg.settings.bg = v; pmgApplyTheme(); await pmgSaveSettings(); return; }
+    if (act === 'fx') { pmg.settings.fx = v; pmgApplyTheme(); await pmgSaveSettings(); return; }
     if (act === 'keepalive') { pmg.settings.keepAlive = v === 'true'; await pmgSaveSettings(); return; }
     if (act === 'autotab') { pmg.settings.autoTab = v === 'true'; await pmgSaveSettings(); return; }
     if (act === 'notify') { pmg.settings.notify = v === 'true'; await pmgSaveSettings(); return; }
     if (act === 'hwmode') { pmg.settings.hwMode = v; await pmgSaveSettings(); return; }
     if (await pmgOwnHwAct(act, t)) return;
-    if (await pmgHealthAct(act, t)) return;
+    if (await pmgDevicesAct(act, t)) return;
+    if (await pmgProfileAct(act, t)) return;
+    if (await pmgBridgeAct(act, t)) return;
     await pmgPassAct(act, t);
   });
   r.addEventListener('input', pmgPassInput);
@@ -1225,31 +1194,44 @@ function pmgBind() {
     if (c.pmg_cache && c.pmg_cache.newValue) { pmg.data = pmgRevive(c.pmg_cache.newValue); changed = true; }
     if (c.pmg_status) { pmg.status = c.pmg_status.newValue; changed = true; }
     if (c.pmg_update) { pmg.update = c.pmg_update.newValue || null; changed = true; }
-    if (c.pmg_health) { pmg.health = c.pmg_health.newValue || null; if (pmg.tab === 'devices') changed = true; }
+    if (c.pmg_bridge) { pmg.bridge = c.pmg_bridge.newValue || null; if (pmg.tab === 'devices') changed = true; }
     if (c.pmg_devices) { pmg.devices = c.pmg_devices.newValue || null; if (pmg.tab === 'devices') changed = true; }
     if (c.pmg_cloud_at) { pmg.cloudAt = c.pmg_cloud_at.newValue || null; }
-    if (c.pmg_own_hw) { pmg.ownHw = c.pmg_own_hw.newValue || {}; if (pmg.tab === 'homework' || pmg.tab === 'overview' || pmg.tab === 'day') changed = true; }
-    if (c.pmg_hw_photos) { pmg.hwPhotos = c.pmg_hw_photos.newValue || {}; if (pmg.tab === 'homework' || pmg.tab === 'day') changed = true; }
+    if (c.pmg_own_hw) { pmg.ownHw = c.pmg_own_hw.newValue || {}; if (pmg.tab === 'homework' || pmg.tab === 'overview') changed = true; }
+    if (c.pmg_hw_photos) { pmg.hwPhotos = c.pmg_hw_photos.newValue || {}; if (pmg.tab === 'homework') changed = true; }
     if (c.pmg_settings) { pmg.settings = { ...PMG_DEFAULT_SETTINGS, ...c.pmg_settings.newValue }; pmgApplyTheme(); changed = true; }
     if (c.pmg_hw_due) { pmg.overrides = c.pmg_hw_due.newValue || {}; changed = true; }
     if (c.pmg_done) {
       pmg.done = c.pmg_done.newValue || {};
       if (pmg.skipRender) pmg.skipRender = false; else changed = true;
     }
-    if (c.pmg_profile) { pmg.profile = c.pmg_profile.newValue || {}; if (pmg.tab === 'pass' || pmg.tab === 'friends') changed = true; pmgApplyTheme(); }
+    if (c.pmg_profile) { pmg.profile = c.pmg_profile.newValue || {}; if (pmg.tab === 'pass' || pmg.tab === 'friends' || pmg.tab === 'profile') changed = true; pmgApplyTheme(); }
     if (c.pmg_groups) { pmg.groups = c.pmg_groups.newValue || []; if (pmg.tab === 'friends' || pmg.tab === 'pass') changed = true; }
     if (c.pmg_boards) { pmg.boards = c.pmg_boards.newValue || {}; if (pmg.tab === 'pass') changed = true; }
     if (c.pmg_game) {
       const old = pmg.game; pmg.game = c.pmg_game.newValue || null;
       const vOld = old && old.view, vNew = pmg.game && pmg.game.view;
       const visual = !vOld || !vNew || vOld.xp !== vNew.xp || vOld.level.level !== vNew.level.level || JSON.stringify(vOld.quests) !== JSON.stringify(vNew.quests) || vOld.streak.days !== vNew.streak.days || JSON.stringify(old.achAll) !== JSON.stringify(pmg.game.achAll);
-      if (visual && (pmg.tab === 'pass' || pmg.tab === 'friends')) changed = true;
+      if (visual && (pmg.tab === 'pass' || pmg.tab === 'friends' || pmg.tab === 'profile')) changed = true;
       else if (visual) { pmgXpLineUpdate(); pmgPlayGains(); }
     }
-    if (changed && (pmg.open || pmg.mode === 'page')) pmgRender(true, true);
-    if (changed) pmgLauncherUpdate();
+    if (changed) pmgRenderSoon();
   });
 }
+
+// Перерисовка из-за фоновых изменений: несколько изменений подряд — одна перерисовка,
+// а пока вкладка скрыта или панель закрыта, не рисуем вовсе (догоним, когда снова покажут).
+function pmgRenderSoon() {
+  pmg.dirty = true;
+  clearTimeout(pmg.renderTimer);
+  pmg.renderTimer = setTimeout(() => {
+    if (document.hidden) return;
+    pmg.dirty = false;
+    if (pmg.open || pmg.mode === 'page') pmgRender(true, true);
+    pmgLauncherUpdate();
+  }, 150);
+}
+document.addEventListener('visibilitychange', () => { if (!document.hidden && pmg.dirty && pmg.root) pmgRenderSoon(); });
 
 // ---------- Панель справа на сайте ----------
 
@@ -1269,6 +1251,8 @@ function pmgOpen() {
 function pmgClose() {
   pmg.open = false;
   pmgQ('.panel').hidden = true;
+  // Закрытая панель не держит в памяти свою разметку: при открытии всё нарисуется заново
+  pmgQ('.panel').innerHTML = '';
   pmgQ('.tip').hidden = true;
   pmgQ('.launcher').setAttribute('aria-expanded', 'false');
   pmgQ('.launcher').classList.remove('hide');
@@ -1293,17 +1277,18 @@ function pmgApplyTheme() {
   const t = pmg.settings.theme || 'auto';
   if (t === 'auto') delete el.dataset.theme; else el.dataset.theme = t;
   el.dataset.bg = pmg.settings.bg || 'glyphs';
+  el.dataset.fx = pmg.settings.fx || 'lite';
   const eq = (pmg.profile && pmg.profile.equipped) || {};
   if (eq.theme && eq.theme !== 'default') el.dataset.accent = eq.theme; else delete el.dataset.accent;
 }
 
 async function pmgLoadState() {
-  const s = await pmgStorageGet(['pmg_cache', 'pmg_settings', 'pmg_done', 'pmg_hw_due', 'pmg_status', 'pmg_drawer', 'pmg_game', 'pmg_profile', 'pmg_groups', 'pmg_boards', 'pmg_update', 'pmg_health', 'pmg_cloud_at', 'pmg_own_hw', 'pmg_hw_photos', 'pmg_devices']);
+  const s = await pmgStorageGet(['pmg_cache', 'pmg_settings', 'pmg_done', 'pmg_hw_due', 'pmg_status', 'pmg_drawer', 'pmg_game', 'pmg_profile', 'pmg_groups', 'pmg_boards', 'pmg_update', 'pmg_cloud_at', 'pmg_own_hw', 'pmg_hw_photos', 'pmg_devices', 'pmg_bridge']);
+  pmg.bridge = s.pmg_bridge || null;
   pmg.devices = s.pmg_devices || null;
   pmg.ownHw = s.pmg_own_hw || {};
   pmg.hwPhotos = s.pmg_hw_photos || {};
   pmg.update = s.pmg_update || null;
-  pmg.health = s.pmg_health || null;
   pmg.cloudAt = s.pmg_cloud_at || null;
   pmg.game = s.pmg_game || null; pmg.profile = s.pmg_profile || {}; pmg.groups = s.pmg_groups || []; pmg.boards = s.pmg_boards || {};
   if (pmg.game) pmg.gainsSeen = 0;
@@ -1367,17 +1352,17 @@ async function pmgMountPage(container) {
   pmg.hwAnimate = true;
   container.innerHTML = '<div class="panel page" aria-label="Gradient"></div><div class="tip" role="tooltip" hidden></div>';
   const fromHash = location.hash.slice(1);
-  if (PMG_TABS.some(([k]) => k === fromHash)) pmg.tab = fromHash;
+  if (PMG_TABS_ALL.some(([k]) => k === fromHash)) pmg.tab = fromHash;
   if (fromHash === 'report') { pmg.tab = 'finals'; pmg.openReportOnLoad = true; }
   pmgBind();
   await pmgLoadState();
   pmgRender();
   pmgGameMsg('login');
   pmgPassPoll();
-  if (pmg.tab === 'day') pmgNoteTab();
+  pmgNoteTab();
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { if (pmgQ('.streak-scene')) pmgStreakClose(); else if (pmgQ('.lvl-up')) pmgLevelClose(); else if (pmgQ('.gains-card')) pmgGainsClose(); else if (pmg.crop) { pmg.crop = null; pmgRender(true, true); } } });
   if (pmg.openReportOnLoad && pmg.data) pmgOpenReport('term');
-  window.addEventListener('hashchange', () => { const k = location.hash.slice(1); if (PMG_TABS.some(([x]) => x === k) && k !== pmg.tab) { pmg.tab = k; pmgRender(); } });
+  window.addEventListener('hashchange', () => { const k = location.hash.slice(1); if (PMG_TABS_ALL.some(([x]) => x === k) && k !== pmg.tab) { pmg.tab = k; pmgRender(); } });
   // Если данных нет или они старые — просим фон обновить
   if (!pmg.data || !pmg.status || Date.now() - (pmg.status.at || 0) > 10 * 60 * 1000) pmgRefresh();
 }

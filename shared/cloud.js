@@ -1,6 +1,6 @@
 // Связка компьютера и телефона через сервер Gradient.
-// Расширение отправляет снимок дневника; оба устройства обмениваются галочками домашки, входами, заданиями и настройками;
-// шаги и этажи приходят с iPhone через Команду. Работает и в фоне расширения, и на сайте.
+// Расширение отправляет снимок дневника; оба устройства обмениваются галочками домашки, входами, заданиями и настройками.
+// Работает и в фоне расширения, и на сайте.
 
 // Словари: сливаются по записям. В pmg_done снятая галочка уходит как 0.
 // pmg_own_hw — своя домашка {id: {id, subject, subjectId, text, due, created, edited, deleted}};
@@ -8,7 +8,6 @@
 const PMG_CLOUD_MAPS = { pmg_done: 'done', pmg_logins: 'logins', pmg_actions: 'actions', pmg_quests: 'quests', pmg_wquests: 'wquests', pmg_mark_seen: 'seen', pmg_own_hw: 'own_hw', pmg_hw_photos: 'hw_photos' };
 // Целиком: побеждает последнее изменение.
 const PMG_CLOUD_LWW = { pmg_hw_due: 'hw_due', pmg_settings: 'settings', pmg_profile: 'profile' };
-const PMG_HEALTH_DAYS = 400;
 
 // Сравнение без учёта порядка ключей (сервер их переставляет).
 function pmgJson(x) {
@@ -106,21 +105,6 @@ async function pmgCloudPullSnapshot() {
   return { ok: true, at: r.updated_at };
 }
 
-// Шаги, этажи и прочее за последние PMG_HEALTH_DAYS дней.
-async function pmgHealthPull() {
-  const from = new Date(Date.now() - PMG_HEALTH_DAYS * 864e5);
-  const days = await pmgRpc('get_health', { p_from: pmgIso(from) });
-  const info = await pmgRpc('health_key_info', {});
-  await chrome.storage.local.set({ pmg_health: { at: Date.now(), days: days || [], key: info || { has: false } } });
-  return { ok: true, n: (days || []).length };
-}
-
-async function pmgHealthNewKey() {
-  const key = await pmgRpc('new_health_key', {}, true);
-  await pmgHealthPull().catch(() => {});
-  return { ok: true, key };
-}
-
 async function pmgPairCode() {
   const r = await pmgRpc('create_pair_code', {}, true);
   return r;
@@ -128,7 +112,7 @@ async function pmgPairCode() {
 
 // Телефон: войти в аккаунт компьютера по коду.
 async function pmgPairClaim(code) {
-  const res = await fetch(PMG_SB_URL + '/functions/v1/pair', {
+  const res = await pmgSbRequest('/functions/v1/pair', {
     method: 'POST', headers: { apikey: PMG_SB_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ code })
   });
   let body = null; try { body = await res.json(); } catch (_) { /* пусто */ }
@@ -145,7 +129,6 @@ async function pmgCloudAll(opts) {
   if (opts.snapshot) out.snapshot = await pmgCloudPushSnapshot(opts.snapshot).catch((e) => ({ ok: false, error: String(e.message || e) }));
   if (opts.pull) out.pull = await pmgCloudPullSnapshot().catch((e) => ({ ok: false, error: String(e.message || e) }));
   out.state = await pmgCloudSync().catch((e) => ({ ok: false, error: String(e.message || e) }));
-  out.health = await pmgHealthPull().catch((e) => ({ ok: false, error: String(e.message || e) }));
   out.devices = await pmgDevicesSync(typeof PMG_WEB !== 'undefined' && PMG_WEB ? 'web' : 'extension').catch((e) => ({ ok: false, error: String(e.message || e) }));
   return out;
 }
@@ -170,14 +153,15 @@ async function pmgHwPhotoUrls(paths, asData) {
     const signed = await pmgSbFetch('/storage/v1/object/sign/hw-photos', { token: s.access_token, json: { expiresIn: 3600, paths: need } });
     await Promise.all((signed || []).map(async (it) => {
       if (!it.signedURL) return;
-      const url = PMG_SB_URL + '/storage/v1' + it.signedURL;
-      const entry = { url, exp: now + 50 * 60e3 };
-      if (asData) { try { const r = await fetch(url); if (r.ok) entry.data = await pmgBlobToDataUrl(await r.blob()); } catch (_) { /* без превью */ } }
+      const entry = { path: '/storage/v1' + it.signedURL, exp: now + 50 * 60e3 };
+      if (asData) { try { const r = await pmgSbRequest(entry.path, {}); if (r.ok) entry.data = await pmgBlobToDataUrl(await r.blob()); } catch (_) { /* без превью */ } }
       pmgHwUrlCache.set(it.path, entry);
+      pmgCacheTrim(pmgHwUrlCache, 40);
     }));
   }
   const out = {};
-  paths.forEach((p) => { const c = pmgHwUrlCache.get(p); if (c) out[p] = asData ? c.data || null : c.url; });
+  // Ссылку отдаём через ту дорогу, что сейчас работает (напрямую или через мост)
+  paths.forEach((p) => { const c = pmgHwUrlCache.get(p); if (c) out[p] = asData ? c.data || null : pmgSbBase() + c.path; });
   return out;
 }
 
