@@ -7,7 +7,7 @@
 // pmg_hw_photos — фото к любой домашке {ключ домашки: [{p: путь, t: время, x: убрано}]}.
 const PMG_CLOUD_MAPS = { pmg_done: 'done', pmg_logins: 'logins', pmg_actions: 'actions', pmg_quests: 'quests', pmg_wquests: 'wquests', pmg_mark_seen: 'seen', pmg_own_hw: 'own_hw', pmg_hw_photos: 'hw_photos' };
 // Целиком: побеждает последнее изменение.
-const PMG_CLOUD_LWW = { pmg_hw_due: 'hw_due', pmg_settings: 'settings', pmg_profile: 'profile' };
+const PMG_CLOUD_LWW = { pmg_hw_due: 'hw_due', pmg_settings: 'settings', pmg_profile: 'profile', pmg_streak_anim: 'streak_anim', pmg_remind: 'remind' };
 
 // Сравнение без учёта порядка ключей (сервер их переставляет).
 function pmgJson(x) {

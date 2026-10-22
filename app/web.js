@@ -10,7 +10,7 @@ const PMG_WEB_TABS = [
   ['profile', 'Профиль', '<circle cx="12" cy="8" r="4" fill="none" stroke="currentColor" stroke-width="1.9"/><path d="M4.5 20.5c.8-4 3.8-6.2 7.5-6.2s6.7 2.2 7.5 6.2" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/>']
 ];
 const PMG_WEB_KEYS = ['pmg_devices', 'pmg_auth', 'pmg_cache', 'pmg_status', 'pmg_settings', 'pmg_done', 'pmg_hw_due', 'pmg_own_hw', 'pmg_hw_photos', 'pmg_cloud_at', 'pmg_mark_seen', 'pmg_game', 'pmg_profile', 'pmg_push_hide', 'pmg_groups', 'pmg_boards', 'pmg_bridge'];
-const PMG_WEB_SYNCED = ['pmg_done', 'pmg_hw_due', 'pmg_own_hw', 'pmg_hw_photos', 'pmg_settings', 'pmg_logins', 'pmg_quests', 'pmg_wquests', 'pmg_actions', 'pmg_mark_seen', 'pmg_profile'];
+const PMG_WEB_SYNCED = ['pmg_done', 'pmg_hw_due', 'pmg_own_hw', 'pmg_hw_photos', 'pmg_settings', 'pmg_logins', 'pmg_quests', 'pmg_wquests', 'pmg_actions', 'pmg_mark_seen', 'pmg_profile', 'pmg_streak_anim', 'pmg_remind'];
 
 const web = { authed: false, tab: 'home', syncing: false, syncErr: null, applying: false, lastSync: 0, pairErr: null, pairing: false, gradeSubj: null, hwView: 'days', showPast: false, enter: true };
 pmg.mode = 'page';
@@ -30,7 +30,7 @@ async function pmgWebMessage(msg) {
     }
     case 'devices': { const r = await pmgDevicesSync('web'); await pmgWebLoad(); return r; }
     case 'device-revoke': { const r = await pmgDeviceRevoke(msg.id); await pmgWebLoad(); return r; }
-    case 'cloud-sync': await pmgWebSync(); return { ok: true };
+    case 'cloud-sync': await (web.syncP || pmgWebSync()); return { ok: true };
     case 'hw-photo-upload': return { ok: true, path: await pmgHwPhotoUpload(msg.dataUrl) };
     case 'hw-photo-urls': return { ok: true, urls: await pmgHwPhotoUrls(msg.paths || [], false) };
   }
@@ -63,8 +63,14 @@ async function pmgWebLoad() {
   pmgApplyTheme();
 }
 
-async function pmgWebSync() {
-  if (!web.authed || web.syncing) return;
+function pmgWebSync() {
+  if (!web.authed) return Promise.resolve();
+  if (web.syncP) return web.syncP;
+  web.syncP = pmgWebSyncOnce().finally(() => { web.syncP = null; });
+  return web.syncP;
+}
+async function pmgWebSyncOnce() {
+  if (web.syncing) return;
   web.syncing = true; web.syncErr = null; pmgWebRender(true);
   web.applying = true;
   try {
@@ -85,8 +91,17 @@ async function pmgWebSync() {
   }
   try { await pmgGameRun({ push: true }); } catch (e) { console.warn('pass', e); }
   await pmgWebLoad();
+  await pmgWebRemind();
   web.applying = false; web.syncing = false; web.lastSync = Date.now();
   pmgWebRender(true);
+}
+
+// Сводка для вечернего напоминания: ближайший день сдачи и задания на него (сервер сверит с галочками)
+async function pmgWebRemind() {
+  if (!pmg.data) return;
+  const sum = pmgRemindSummary(pmgHomework());
+  const old = (await pmgStorageGet('pmg_remind')).pmg_remind || null;
+  if (JSON.stringify(sum) !== JSON.stringify(old)) await pmgStorageSet({ pmg_remind: sum });
 }
 
 let pmgWebPushTimer = null;
@@ -97,7 +112,9 @@ chrome.storage.onChanged.addListener((c) => {
     const old = pmg.game; pmg.game = c.pmg_game.newValue || null;
     const vo = old && old.view, vn = pmg.game && pmg.game.view;
     if ((web.tab === 'pass' || web.tab === 'profile') && (!vo || !vn || vo.xp !== vn.xp || vo.level.level !== vn.level.level || JSON.stringify(vo.quests) !== JSON.stringify(vn.quests) || vo.streak.days !== vn.streak.days)) pmgWebRender(true);
-    if (web.tab === 'pass') pmgPlayGains();
+    else pmgXpLineUpdate();
+    // Начисления показываем на любой вкладке: отметил домашку на главной — «+50» летит в полоску в шапке
+    pmgPlayGains();
   }
   if (c.pmg_profile) {
     pmg.profile = c.pmg_profile.newValue || {};
@@ -106,6 +123,7 @@ chrome.storage.onChanged.addListener((c) => {
   }
   if (c.pmg_groups) pmg.groups = c.pmg_groups.newValue || [];
   if (c.pmg_boards) pmg.boards = c.pmg_boards.newValue || {};
+  if (!web.applying && pmg.data && (c.pmg_own_hw || c.pmg_hw_due)) { pmg.ownHw = (c.pmg_own_hw ? c.pmg_own_hw.newValue : pmg.ownHw) || {}; pmgWebRemind(); }
   if (!web.applying && pmg.data && (c.pmg_done || c.pmg_actions)) { clearTimeout(pmgWebGameTimer); pmgWebGameTimer = setTimeout(() => pmgGameRun({ push: true }).catch(() => {}), 600); }
 });
 chrome.storage.onChanged.addListener((c) => {
@@ -203,7 +221,9 @@ function pmgWebHeader() {
   return '<header class="w-head"><div class="brand"><span class="brand-mark">' + PMG_LOGO + '</span><div><span class="brand-name">Gradient</span>' +
     '<div class="who">' + (web.syncing ? 'обновляю…' : web.syncErr ? '<span class="err">нет связи</span>' : when ? '<span class="' + (stale ? 'stale' : '') + '">дневник ' + when + '</span>' : '') + '</div></div></div>' +
     '<div class="head-tools"><button class="icon-btn' + (web.tab === 'me' ? ' on' : '') + '" data-act="w-tab" data-v="me" aria-label="Настройки"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.9"/><path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M5.5 18.5l1.7-1.7M16.8 7.2l1.7-1.7" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg></button><button class="icon-btn" data-act="w-theme" aria-label="Тема">' + pmgIcon(t === 'dark' ? 'moon' : t === 'light' ? 'sun' : 'auto') + '</button>' +
-    '<button class="icon-btn' + (web.syncing ? ' spin' : '') + '" data-act="w-sync" aria-label="Обновить">' + pmgIcon('refresh') + '</button></div></header>';
+    '<button class="icon-btn' + (web.syncing ? ' spin' : '') + '" data-act="w-sync" aria-label="Обновить">' + pmgIcon('refresh') + '</button></div>' +
+    // Полоска уровня в закреплённой шапке: видна на любой вкладке, сюда прилетают «+XP»
+    pmgXpLine() + '</header>';
 }
 
 function pmgWebNav() {
@@ -396,7 +416,9 @@ function pmgWebMe() {
   const fx = pmg.settings.fx || 'lite';
   return '<div class="w-title"><h1>Настройки</h1></div>' + pmgBridgeCard() + pmgWebPushCard(true) +
     '<section class="card"><div class="seg-ctl mini" role="group" aria-label="Эффекты"><span>Эффекты</span>' + [['lite', 'Лёгкие'], ['full', 'Все']].map(([v, l]) => '<button class="' + (fx === v ? 'on' : '') + '" data-act="w-fx" data-v="' + v + '">' + l + '</button>').join('') + '</div>' +
-    '<p class="muted small">«Лёгкие» — без размытия и бесконечных анимаций: меньше памяти и батареи.</p></section>' +
+    '<p class="muted small">«Лёгкие» — без размытия и бесконечных анимаций: меньше памяти и батареи.</p>' +
+    '<div class="seg-ctl mini" role="group" aria-label="Напоминание"><span>Напоминать в 19:00 про домашку на завтра</span>' + [[true, 'Да'], [false, 'Нет']].map(([v, l]) => '<button class="' + ((pmg.settings.remind !== false) === v ? 'on' : '') + '" data-act="w-remind" data-v="' + v + '">' + l + '</button>').join('') + '</div>' +
+    '<p class="muted small">Придёт, только если на завтра что-то не отмечено. Нужны включённые уведомления выше.</p></section>' +
     '<div class="health devs">' + pmgDevicesBlock() + '</div>';
 }
 
@@ -426,6 +448,7 @@ function pmgWebBind() {
       case 'w-push-test': { const r = await pmgPushTest().catch(() => null); pmgToast(r && r.sent ? 'Отправлено — смотри уведомления' : 'Не дошло. Выключи и включи уведомления заново'); return; }
       case 'w-push-hide': web.pushHide = true; await pmgStorageSet({ pmg_push_hide: true }); pmgWebRender(true); return;
       case 'w-fx': pmg.settings.fx = v; pmgApplyTheme(); await pmgSaveSettings(); pmgWebRender(true); return;
+      case 'w-remind': pmg.settings.remind = v === 'true'; await pmgSaveSettings(); pmgWebRender(true); return;
       case 'w-solo': pmgWebSolo(); return;
       case 'w-theme': { const order = ['auto', 'light', 'dark']; pmg.settings.theme = order[(order.indexOf(pmg.settings.theme || 'auto') + 1) % 3]; pmgApplyTheme(); await pmgSaveSettings(); pmgWebRender(true); return; }
       case 'w-claim': { const c = (root.querySelector('[data-act="w-code"]') || {}).value || ''; pmgWebClaim(c); return; }
@@ -591,6 +614,8 @@ function pmgBoardValue(p, mode) {
 function pmgBoardList(players, mode) {
   const rows = players.map((p) => ({ p, v: pmgBoardValue(p, mode) }));
   const ranked = rows.filter((r) => r.v != null).sort((a, b) => b.v - a.v);
+  const rk = pmgRanks(ranked.map((r) => r.v));
+  const placeOf = (r) => { const i = ranked.indexOf(r); return i < 0 ? 0 : rk[i]; };
   const rest = rows.filter((r) => !ranked.includes(r));
   if (!ranked.length && !rest.length) return '<section class="card w-empty"><p class="muted">В группе пока никого.</p></section>';
   const fmt = (r) => mode === 'xp' ? pmgFmtInt(r.v) + ' XP' : mode === 'avg' ? pmgFmtAvg(r.v) : r.v + '%';
@@ -610,7 +635,7 @@ function pmgBoardList(players, mode) {
     h += '<section class="card f-stairs">' + pmgStairs(srows, { sel: web.fSel, act: 'f-pl', key: 'w:' + web.gid + ':' + mode, animate }) + '</section>';
     const sel = web.fSel && players.find((p) => p.id === web.fSel);
     if (sel) {
-      const r = rows.find((x) => x.p === sel), place = ranked.indexOf(r) + 1;
+      const r = rows.find((x) => x.p === sel), place = placeOf(r);
       h += '<section class="card f-pcard"><span class="pc-fig">' + pmgFigure(sel, 92, { lead: place === 1 }) + '</span><div class="f-pc-main"><b>' + pmgEsc(sel.nick) + (sel.me ? ' <small>ты</small>' : '') + '</b>' +
         '<small class="muted">' + (place ? place + '-е место · ' + fmt(r) : 'нет данных') + '</small><small class="muted">уровень ' + sel.level + (sel.streak ? ' · огонёк ' + sel.streak : '') + '</small>' +
         (place ? '<small class="muted">' + sub(r) + '</small>' : '') + '</div>' +
@@ -620,7 +645,7 @@ function pmgBoardList(players, mode) {
   // Строки нажимаются так же, как фигурки на лесенке
   h += '<section class="f-list">' + ranked.map((r, i) => {
     const p = r.p;
-    return '<button class="f-row' + (p.me ? ' me' : '') + (web.fSel === p.id ? ' on' : '') + '" data-act="f-pl" data-v="' + pmgEsc(p.id) + '" style="--i:' + i + '"><span class="f-rank">' + (i + 1) + '</span>' + pmgAvatar(p, 40) +
+    return '<button class="f-row' + (p.me ? ' me' : '') + (web.fSel === p.id ? ' on' : '') + '" data-act="f-pl" data-v="' + pmgEsc(p.id) + '" style="--i:' + i + '"><span class="f-rank">' + rk[i] + '</span>' + pmgAvatar(p, 40) +
       '<span class="f-main"><b>' + pmgEsc(p.nick) + (p.me ? ' <small>ты</small>' : '') + '</b><small class="muted">' + sub(r) + '</small></span>' +
       '<span class="f-val">' + fmt(r) + '</span></button>';
   }).join('') + '</section>';

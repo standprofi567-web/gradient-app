@@ -53,7 +53,8 @@ function pmgAvatar(p, size, opts) {
 
 // ---------- Огонёк ----------
 function pmgFlameSvg(days, size) {
-  const tier = days >= 21 ? 4 : days >= 14 ? 3 : days >= 7 ? 2 : days >= 3 ? 1 : 0;
+  // Серый — только когда серии нет. С первого дня огонёк оранжевый, как на сцене огонька.
+  const tier = days >= 21 ? 4 : days >= 14 ? 3 : days >= 7 ? 2 : days >= 1 ? 1 : 0;
   const cols = [['#9CA3AF', '#D1D5DB'], ['#F97316', '#FDBA74'], ['#EF4444', '#FDBA74'], ['#8B5CF6', '#5EEAD4'], ['#6366F1', '#5EEAD4']][tier];
   const g = pmgUid('fl');
   return '<svg class="flame t' + tier + '" viewBox="0 0 32 32" width="' + (size || 28) + '" height="' + (size || 28) + '" aria-hidden="true">' +
@@ -73,7 +74,7 @@ function pmgSeasonBadge(kind, theme, size) {
   for (let i = 0; i < 24; i++) { const r = i % 2 ? 22 : 30, an = (i / 24) * Math.PI * 2 - Math.PI / 2; pts += (32 + r * Math.cos(an)).toFixed(1) + ',' + (32 + r * Math.sin(an)).toFixed(1) + ' '; }
   return '<svg viewBox="0 0 64 64" width="' + (size || 56) + '" height="' + (size || 56) + '" aria-hidden="true"><defs><linearGradient id="' + g + '" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="' + b + '"/><stop offset=".45" stop-color="' + a + '"/><stop offset=".55" stop-color="' + b + '"/><stop offset="1" stop-color="' + a + '"/></linearGradient></defs>' +
     '<polygon points="' + pts + '" fill="url(#' + g + ')" stroke="#17141F" stroke-width="2.5" stroke-linejoin="round"/>' +
-    '<circle cx="32" cy="32" r="14" fill="#17141F"/><text x="32" y="37.5" text-anchor="middle" font-size="15" font-weight="700" fill="' + b + '" font-family="\'PMG Pixel\', monospace">' + lvl + '</text></svg>';
+    '<circle cx="32" cy="32" r="14" fill="#17141F"/><text x="32" y="37.5" text-anchor="middle" font-size="15" font-weight="700" fill="' + b + '" font-family="\'PMG Pixel\', \'PMG Onest\', monospace">' + lvl + '</text></svg>';
 }
 
 // ---------- Иконки наград по типу ----------

@@ -228,3 +228,6 @@ button.f-row { width: 100%; font: inherit; color: inherit; text-align: left; cur
 /* Лёгкие эффекты: шапка и меню без размытия — непрозрачные */
 .pmg-page[data-fx="lite"] .w-head { background: var(--page-bg, #EEF1F8); }
 .pmg-page[data-fx="lite"] .w-nav { background: var(--menu-bg); }
+/* Полоска уровня во второй строке шапки */
+.w-head { flex-wrap: wrap; }
+.w-head .xpline { flex: 1 1 100%; margin: 6px 0 0; padding: 0; cursor: pointer; }

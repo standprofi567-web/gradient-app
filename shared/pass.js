@@ -73,7 +73,7 @@ function pmgPassView() {
   const st = G.streak;
   h += '<section class="pass-hero glare">' + pmgLevelRing(L.level, L.need ? L.into / L.need : 1, 116, L.stars) +
     '<div class="ph-main"><div class="ph-season"><span class="ph-name">Сезон «' + pmgEsc(S.name) + '»</span>' +
-    (S.phase !== 'over' && S.phase !== 'soon' ? '<span class="muted"> · ' + (G.daysLeft === 0 ? 'последний день' : 'осталось ' + G.daysLeft + ' ' + pmgPlural(G.daysLeft, ['день', 'дня', 'дней'])) + '</span>' : '') + '</div>' +
+    (S.phase !== 'over' && S.phase !== 'soon' ? '<span class="muted ph-left"><i class="ph-dot"> · </i>' + (G.daysLeft === 0 ? 'последний день' : 'осталось ' + G.daysLeft + '\u00a0' + pmgPlural(G.daysLeft, ['день', 'дня', 'дней'])) + '</span>' : '') + '</div>' +
     '<div class="ph-xp"><b data-count-int="' + Math.round(G.xp) + '">' + pmgFmtXp(G.xp) + '</b> XP' +
     (L.level < 50 ? '<span class="muted"> · до ' + (L.level + 1) + '-го уровня ' + pmgFmtXp(L.need - L.into) + '</span>' : '<span class="muted"> · до звезды ' + pmgFmtXp(L.need - L.into) + '</span>') + '</div>' +
     '<div class="xpbar"><i style="width:' + (L.need ? L.into / L.need * 100 : 100).toFixed(1) + '%"></i></div>' +
@@ -169,12 +169,15 @@ function pmgMiniBoard() {
   if (!gid) return '';
   const b = pmg.boards && pmg.boards[gid];
   if (!b || !b.board || !b.board.players) return '';
-  const pl = b.board.players.slice(0, 5);
-  const me = b.board.players.find((p) => p.me);
+  const all = b.board.players.slice().sort((x, y) => (y.week_xp || 0) - (x.week_xp || 0));
+  const rk = pmgRanks(all.map((p) => p.week_xp || 0));
+  const place = (p) => rk[all.indexOf(p)];
+  const pl = all.slice(0, 5);
+  const me = all.find((p) => p.me);
   const goal = b.goal && b.goal.ok ? b.goal : null;
   return '<section class="card mini-board"><div class="card-head"><h3>Неделя в группе</h3><button class="link" data-act="tab" data-tab="friends">Арена и лента</button></div><ol class="mb-list">' +
-    pl.map((p, i) => '<li class="' + (p.me ? 'me' : '') + '"><span class="mb-pos">' + (i + 1) + '</span>' + pmgAvatar(p, 28) + '<span class="mb-nick">' + pmgEsc(p.nick) + '</span><b>' + pmgFmtXp(p.week_xp) + '</b></li>').join('') +
-    (me && !pl.includes(me) ? '<li class="me"><span class="mb-pos">' + (b.board.players.indexOf(me) + 1) + '</span>' + pmgAvatar(me, 28) + '<span class="mb-nick">' + pmgEsc(me.nick) + '</span><b>' + pmgFmtXp(me.week_xp) + '</b></li>' : '') + '</ol>' +
+    pl.map((p) => '<li class="' + (p.me ? 'me' : '') + '"><span class="mb-pos">' + place(p) + '</span>' + pmgAvatar(p, 28) + '<span class="mb-nick">' + pmgEsc(p.nick) + '</span><b>' + pmgFmtXp(p.week_xp) + '</b></li>').join('') +
+    (me && !pl.includes(me) ? '<li class="me"><span class="mb-pos">' + place(me) + '</span>' + pmgAvatar(me, 28) + '<span class="mb-nick">' + pmgEsc(me.nick) + '</span><b>' + pmgFmtXp(me.week_xp) + '</b></li>' : '') + '</ol>' +
     (goal ? pmgGoalBar(goal, b.board.players) : '') + '</section>';
 }
 
@@ -325,20 +328,31 @@ function pmgFigure(p, h, opts) {
     '<span class="fig-head" style="left:' + hx + '%;top:' + hy + '%">' + pmgAvatar(p, hs) + '</span></span>';
 }
 
+// Места при равных очках одинаковые: 10, 10, 7 → 1, 1, 3. В понедельник у всех 0 — все на первой ступеньке.
+function pmgRanks(values) {
+  return values.map((v) => 1 + values.filter((x) => x > v).length);
+}
+
 // rows: [{ p, v, label, sleep }] — по убыванию; рисуем слева направо снизу вверх, лидер справа на самой высокой ступеньке.
 function pmgStairs(rows, o) {
   o = o || {};
   const n = rows.length;
   if (!n) return '';
-  const rise = n > 1 ? Math.min(26, Math.max(10, 150 / (n - 1))) : 0;
-  const base = 66, top = base + rise * (n - 1);
+  const awake = rows.filter((r) => !r.sleep);
+  const ranks = pmgRanks(awake.map((r) => r.v || 0));
+  const rankOf = new Map(awake.map((r, i) => [r, ranks[i]]));
+  // Высота — по номеру ступеньки среди разных мест, чтобы равные стояли вровень
+  const levels = [...new Set(ranks)].sort((a, b) => a - b);
+  const k = levels.length;
+  const rise = k > 1 ? Math.min(26, Math.max(10, 150 / (k - 1))) : 0;
+  const base = 66, top = base + rise * Math.max(0, k - 1);
   const theme = (pmgGV() && pmgGV().season.theme) || 'sticker';
-  const lead = rows[0] && !rows[0].sleep && rows[0].v > 0 ? rows[0].p.id : null;
   const fresh = o.animate ? ' hop' : '';
   let cols = '';
   rows.slice().reverse().forEach((r, ri) => {
-    const place = n - ri, p = r.p, isLead = p.id === lead;
-    const hgt = r.sleep ? base : base + rise * (n - place);
+    const p = r.p, place = r.sleep ? null : rankOf.get(r);
+    const isLead = !r.sleep && place === 1 && r.v > 0;
+    const hgt = r.sleep ? base : base + rise * (k - 1 - levels.indexOf(place));
     const pl = r.sleep ? 'zz' : place;
     cols += '<button class="st-col' + (p.me ? ' me' : '') + (r.sleep ? ' sleep' : '') + (isLead ? ' lead' : '') + (o.sel === p.id ? ' sel' : '') + (place <= 3 && !r.sleep ? ' p' + place : '') +
       '" style="--i:' + ri + ';--bh:' + Math.round(hgt) + 'px" data-act="' + (o.act || 'pl') + '" data-v="' + pmgEsc(p.id) + '" aria-label="' + pmgEsc(p.nick) + ', ' + (r.sleep ? 'давно не заходил' : place + '-е место') + (r.label ? ', ' + pmgEsc(r.label) : '') + '">' +
@@ -396,12 +410,14 @@ function pmgBoardBlock(players, data) {
   const mode = pmg.boardMode || 'week';
   const key = mode === 'week' ? 'week_xp' : 'xp';
   const list = players.slice().sort((a, b) => (b[key] || 0) - (a[key] || 0));
+  const rk = pmgRanks(list.map((p) => p[key] || 0));
   const goal = data.goal && data.goal.ok ? data.goal : null;
   return '<section class="card board"><div class="card-head"><h3>Рейтинг</h3><div class="seg-ctl mini">' +
     [['week', 'Неделя'], ['season', 'Сезон']].map(([k, l]) => '<button class="' + (mode === k ? 'on' : '') + '" data-act="bmode" data-v="' + k + '">' + l + '</button>').join('') + '</div></div>' +
     '<ol class="board-list">' + list.map((p, i) => {
       const eq = p.equipped || {};
-      return '<li class="' + (p.me ? 'me' : '') + '" style="--i:' + i + '"><span class="bl-pos' + (i < 3 && (p[key] || 0) > 0 ? ' top' + (i + 1) : '') + '">' + (i + 1) + '</span>' + pmgAvatar(p, 36) +
+      const r = rk[i];
+      return '<li class="' + (p.me ? 'me' : '') + (pmg.arenaSel === p.id ? ' on' : '') + '" style="--i:' + i + '" data-act="pl" data-v="' + pmgEsc(p.id) + '" role="button" tabindex="0"><span class="bl-pos' + (r <= 3 && (p[key] || 0) > 0 ? ' top' + r : '') + '">' + r + '</span>' + pmgAvatar(p, 36) +
         '<span class="bl-name"><b>' + pmgEsc(p.nick) + '</b><small>' + (eq.title && eq.title !== 'none' ? pmgEsc(PMG_TITLE_NAMES[eq.title]) + ' · ' : '') + 'ур. ' + p.level + (p.streak ? ' · ' + pmgFlameSvg(p.streak, 13) + p.streak : '') + '</small></span>' +
         '<b class="bl-xp">' + pmgFmtXp(p[key]) + '</b></li>';
     }).join('') + '</ol>' + (mode === 'week' ? '<p class="muted small">Неделя обнуляется в понедельник в 00:00. Трое лучших недели получают кубок.</p>' : '') +
@@ -448,7 +464,7 @@ function pmgMembersBlock(players, g) {
   list.forEach((p) => {
     const sleep = now - new Date(p.last_seen).getTime() > 14 * 864e5;
     const role = { owner: 'создатель', helper: 'помощник', member: 'участник' }[p.role];
-    h += '<li class="' + (sleep ? 'sleep' : '') + (p.me ? ' me' : '') + '">' + pmgAvatar(p, 36) + '<span class="mem-name"><b>' + pmgEsc(p.nick) + '</b><small>' + role + ' · в группе с ' + new Date(p.joined_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }) + '</small></span>' +
+    h += '<li class="' + (sleep ? 'sleep' : '') + (p.me ? ' me' : '') + (pmg.arenaSel === p.id ? ' on' : '') + '"><button class="mem-who" data-act="pl" data-v="' + pmgEsc(p.id) + '" aria-label="Открыть карточку: ' + pmgEsc(p.nick) + '">' + pmgAvatar(p, 36) + '<span class="mem-name"><b>' + pmgEsc(p.nick) + '</b><small>' + role + ' · в группе с ' + new Date(p.joined_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }) + '</small></span></button>' +
       '<span class="mem-lv">ур. ' + p.level + (p.stars ? ' ★' + p.stars : '') + '</span><span class="mem-fl">' + pmgFlameSvg(p.streak, 14) + p.streak + '</span><span class="mem-seen">' + (sleep ? 'спит' : pmgAgo(p.last_seen)) + '</span>';
     if ((owner || helper) && !p.me && p.role !== 'owner') {
       const acts = [];
@@ -568,7 +584,13 @@ async function pmgPassAct(act, t) {
     case 'grp': pmg.gid = v; pmg.groupData = null; pmg.arenaSel = null; pmgRender(true, true); return true;
     case 'fview': pmg.friendsView = v; pmgRender(true, true); return true;
     case 'bmode': pmg.boardMode = v; pmgRender(true, true); return true;
-    case 'pl': pmg.arenaSel = v || null; pmgRender(true, true); return true;
+    case 'pl': {
+      pmg.arenaSel = v && v !== pmg.arenaSel ? v : null;
+      pmgRender(true, true);
+      // Выбрали в списке (не на лесенке) — показать карточку игрока, она выше списка
+      if (pmg.arenaSel && !t.classList.contains('st-col')) { const c = pmgQ('.player-card'); if (c) c.scrollIntoView({ block: 'nearest', behavior: pmgReduced() ? 'auto' : 'smooth' }); }
+      return true;
+    }
     case 'copy-code': {
       try { await navigator.clipboard.writeText(v); t.dataset.tip = 'Скопировано'; t.classList.add('copied'); setTimeout(() => t.classList.remove('copied'), 1200); } catch (_) { /* нет доступа к буферу */ }
       return true;
@@ -805,12 +827,15 @@ function pmgMaybeStreak() {
   const st = pmg.game, k = st && st.view && st.view.streak, today = pmgIso(new Date());
   if (!k || !k.todayCounted || !k.days || pmg.streakSeenDay === today || pmg.streakBusy || pmg.gainBusy || pmgQ('.lvl-up, .gains-card')) return false;
   pmg.streakBusy = true;
-  chrome.storage.local.get('pmg_streak_anim').then(({ pmg_streak_anim: seen }) => {
+  (async () => {
+    // Сцену видели на другом устройстве? Отметка общая — сначала сверяемся с сервером (не дольше 5 секунд)
+    if ((pmg.settings && pmg.settings.cloud) || PMG_IS_WEB) await Promise.race([pmgGameMsg('cloud-sync'), new Promise((r) => setTimeout(r, 5000))]);
+    const { pmg_streak_anim: seen } = await pmgStorageGet('pmg_streak_anim');
     pmg.streakSeenDay = today;
     if (seen === today || !(pmg.open || pmg.mode === 'page')) { pmg.streakBusy = false; pmgPlayGains(); return; }
-    chrome.storage.local.set({ pmg_streak_anim: today });
+    pmgStorageSet({ pmg_streak_anim: today });
     pmgStreakScene(k, () => { pmg.streakBusy = false; pmgPlayGains(); });
-  });
+  })();
   return true;
 }
 

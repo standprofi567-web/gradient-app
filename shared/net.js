@@ -130,6 +130,20 @@ async function pmgDeletePhoto() {
   await chrome.storage.local.remove('pmg_photo_path');
 }
 
+// Маленькая копия фото: для лесенки, списков и карточки игрока 128 px хватает,
+// а весит она в десятки раз меньше — её можно хранить вместе с группой, и фото видны сразу.
+async function pmgThumbDataUrl(blob, size) {
+  try {
+    if (typeof createImageBitmap !== 'function' || typeof OffscreenCanvas === 'undefined') throw new Error('no_canvas');
+    const bmp = await createImageBitmap(blob);
+    const k = Math.min(1, size / Math.max(bmp.width, bmp.height));
+    const c = new OffscreenCanvas(Math.max(1, Math.round(bmp.width * k)), Math.max(1, Math.round(bmp.height * k)));
+    c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+    if (bmp.close) bmp.close();
+    return await pmgBlobToDataUrl(await c.convertToBlob({ type: 'image/jpeg', quality: 0.82 }));
+  } catch (_) { return pmgBlobToDataUrl(blob); }
+}
+
 // Фото друзей: подписанные ссылки → картинки data: (страница дневника не грузит чужие адреса).
 const pmgPhotoCache = new Map();
 // Кэш картинок в памяти не растёт бесконечно: самые старые записи выбрасываем.
@@ -143,7 +157,7 @@ async function pmgPhotos(paths) {
       if (!it.signedURL) return;
       try {
         const res = await pmgSbRequest('/storage/v1' + it.signedURL, {});
-        if (res.ok) { pmgPhotoCache.set(it.path, await pmgBlobToDataUrl(await res.blob())); pmgCacheTrim(pmgPhotoCache, 60); }
+        if (res.ok) { pmgPhotoCache.set(it.path, await pmgThumbDataUrl(await res.blob(), 128)); pmgCacheTrim(pmgPhotoCache, 60); }
       } catch (_) { /* без фото покажем аватар */ }
     }));
   }

@@ -40,8 +40,19 @@ async function pmgGameRunOnce(opts) {
   let picksChanged = false;
   const todayIso = ctx.todayIso;
   const live = season.phase !== 'over' && season.phase !== 'soon';
-  if (live && ctx.isSchool(ctx.today) && !quests[todayIso]) { quests[todayIso] = pmgPickDaily(ctx, todayIso, seed, { inGroup }); picksChanged = true; }
   const mon = pmgIso(pmgMonday(ctx.today));
+  // Прежде чем выбрать новые задания, забираем с сервера выбор другого устройства:
+  // иначе телефон и компьютер выберут каждый свою тройку и одна затрёт другую.
+  const needPick = live && ((ctx.isSchool(ctx.today) && !quests[todayIso]) || !wquests[mon]);
+  if (needPick && typeof pmgCloudSync === 'function' && typeof pmgCloudEnabled === 'function' && await pmgCloudEnabled()) {
+    try {
+      await pmgCloudSync();
+      const fresh = await chrome.storage.local.get(['pmg_quests', 'pmg_wquests']);
+      Object.assign(quests, fresh.pmg_quests || {});
+      Object.assign(wquests, fresh.pmg_wquests || {});
+    } catch (_) { /* нет связи — выберем сами */ }
+  }
+  if (live && ctx.isSchool(ctx.today) && !quests[todayIso]) { quests[todayIso] = pmgPickDaily(ctx, todayIso, seed, { inGroup }); picksChanged = true; }
   if (live && !wquests[mon]) { wquests[mon] = pmgPickWeekly(ctx, mon, seed); picksChanged = true; }
   if (picksChanged) {
     const old = pmgIso(new Date(now.getTime() - 150 * 864e5));
@@ -90,8 +101,9 @@ async function pmgGameRunOnce(opts) {
   g.achievements.forEach((c) => { if (!achAll.has(c)) { achAll.add(c); if (state.known) gains.push({ ref: 'ach:' + c, xp: 0, label: 'ach', src: 'ach', code: c, t: Date.now() }); } });
   state = { ...state, known: cur, gains, view, achAll: [...achAll], restoreUsed: state.restoreUsed || g.streak.restoreUsed };
 
-  // Сервер: только если человек сам начал сезон (создал профиль)
-  if (s.pmg_profile && s.pmg_profile.created && opts.push !== false) {
+  // Сервер: только если человек сам начал сезон (создал профиль).
+  // Очки отправляет одно устройство: компьютер, если он на связи; телефон — только когда компьютера нет.
+  if (s.pmg_profile && s.pmg_profile.created && opts.push !== false && await pmgIsXpWriter()) {
     try {
       const sent = state.sent || {};
       const list = [];
@@ -119,6 +131,15 @@ async function pmgGameRunOnce(opts) {
   }
   await chrome.storage.local.set({ pmg_game: state });
   return state;
+}
+
+// Кто отправляет очки на сервер. Иначе телефон со старым снимком дневника откатывает огонёк и цифры,
+// которые прислал компьютер. Телефон отправляет сам, только если расширение не появлялось 3 дня.
+async function pmgIsXpWriter() {
+  if (!(typeof PMG_WEB !== 'undefined' && PMG_WEB)) return true;
+  const d = (await chrome.storage.local.get('pmg_devices')).pmg_devices;
+  const list = (d && d.devices) || [];
+  return !list.some((x) => x.kind === 'extension' && x.last_seen && Date.now() - new Date(x.last_seen).getTime() < 3 * 864e5);
 }
 
 async function pmgRecordLogin() {
@@ -191,7 +212,8 @@ async function pmgGroupData(gid) {
   const out = { gid, at: Date.now(), board, feed: feed || [], goal, cheers: cheers || [] };
   const store = (await chrome.storage.local.get('pmg_boards')).pmg_boards || {};
   const prev = store[gid];
-  store[gid] = { ...out, board: { ...board, players: players.map((p) => ({ ...p, photoUrl: null })) }, prevWeek: prev ? Object.fromEntries((prev.board.players || []).map((p) => [p.id, p.week_xp])) : null };
+  // Превью фото маленькие — храним их с группой, чтобы при следующем открытии фото были сразу
+  store[gid] = { ...out, board: { ...board, players: players.map((p) => ({ ...p })) }, prevWeek: prev ? Object.fromEntries((prev.board.players || []).map((p) => [p.id, p.week_xp])) : null };
   await chrome.storage.local.set({ pmg_boards: store });
   return out;
 }

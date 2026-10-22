@@ -744,3 +744,15 @@
 .pmg-page[data-fx="lite"] :is(.flame .fl-body, .flame .spark, .flame .fl-ring, .orbit, .pl-in, .ob-art svg, .tn.cur .tn-ic, .goal.done .goal-bar, .arena-sun, .st-col.lead .fig, .player-card.skin-holo) { animation: none !important; }
 :host([data-fx="lite"]) .av::after, .pmg-page[data-fx="lite"] .av::after { animation: none !important; }
 :host([data-fx="lite"]) .fig-head .av, .pmg-page[data-fx="lite"] .fig-head .av { box-shadow: 0 0 0 2.5px currentColor, 0 0 0 4.5px #fff !important; }
+
+/* Строки рейтинга и участников нажимаются — открывают карточку игрока, как фигурки на лесенке */
+.board-list li[data-act] { cursor: pointer; transition: background .15s; }
+.board-list li[data-act]:hover { background: var(--glass-2); }
+.board-list li.on, .mem-list li.on { outline: 2px solid var(--accent); outline-offset: -2px; }
+.mem-who { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.mem-who:hover .mem-name b { text-decoration: underline; }
+
+/* «осталось 19 дней» не рвётся посередине; на узком экране уходит отдельной строкой без точки */
+.ph-left { white-space: nowrap; }
+.ph-dot { font-style: normal; }
+@container sheet (max-width: 520px) { .ph-left { display: block; margin-top: 2px; } .ph-dot { display: none; } }

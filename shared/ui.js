@@ -365,6 +365,9 @@ function pmgSettingsBlock() {
     '<div class="seg-ctl" role="group" aria-label="Уведомления"><span>Уведомлять о новых оценках и домашке</span>' +
     [[true, 'Да'], [false, 'Нет']].map(([v, l]) => '<button class="' + (pmg.settings.notify === v ? 'on' : '') + '" data-act="notify" data-v="' + v + '">' + l + '</button>').join('') + '</div>' +
     '<p class="muted">Gradient сам проверяет дневник каждые 20 минут, пока открыт браузер.</p>' +
+    '<div class="seg-ctl" role="group" aria-label="Напоминание"><span>Вечером напоминать про домашку на завтра</span>' +
+    [[true, 'Да'], [false, 'Нет']].map(([v, l]) => '<button class="' + ((pmg.settings.remind !== false) === v ? 'on' : '') + '" data-act="remind" data-v="' + v + '">' + l + '</button>').join('') + '</div>' +
+    '<p class="muted">В 19:00 на телефон придёт «на завтра осталось 3 задания», если что-то не отмечено. Нужны включённые уведомления в приложении на телефоне.</p>' +
     '<div class="seg-ctl" role="group" aria-label="Тема"><span>Тема</span>' +
     [['auto', 'Как в системе'], ['light', 'Светлая'], ['dark', 'Тёмная']].map(([v, l]) => '<button class="' + ((pmg.settings.theme || 'auto') === v ? 'on' : '') + '" data-act="theme" data-v="' + v + '">' + l + '</button>').join('') + '</div>' +
     '<div class="seg-ctl" role="group" aria-label="Эффекты"><span>Эффекты</span>' +
@@ -1142,6 +1145,7 @@ function pmgBind() {
     if (act === 'keepalive') { pmg.settings.keepAlive = v === 'true'; await pmgSaveSettings(); return; }
     if (act === 'autotab') { pmg.settings.autoTab = v === 'true'; await pmgSaveSettings(); return; }
     if (act === 'notify') { pmg.settings.notify = v === 'true'; await pmgSaveSettings(); return; }
+    if (act === 'remind') { pmg.settings.remind = v === 'true'; await pmgSaveSettings(); return; }
     if (act === 'hwmode') { pmg.settings.hwMode = v; await pmgSaveSettings(); return; }
     if (await pmgOwnHwAct(act, t)) return;
     if (await pmgDevicesAct(act, t)) return;
@@ -1308,7 +1312,8 @@ function pmgFontsCss() {
   const LAT = 'U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD';
   const px = (file, w, range) => '@font-face{font-family:"PMG Pixel";src:url(' + chrome.runtime.getURL('fonts/' + file) + ') format("woff2");font-weight:' + w + ';font-display:swap;unicode-range:' + range + '}';
   return [400, 600, 700].map((w) => f('onest-cyrillic-' + w + '.woff2', w, CYR) + f('onest-latin-' + w + '.woff2', w, LAT)).join('') +
-    [400, 700].map((w) => px('pixelify-cyrillic-' + w + '.woff2', w, CYR) + px('pixelify-latin-' + w + '.woff2', w, LAT)).join('');
+    // Пиксельный шрифт — без цифр: в нём «5» похожа на «S». Цифры сами берутся из обычного шрифта.
+    [400, 700].map((w) => px('pixelify-cyrillic-' + w + '.woff2', w, CYR) + px('pixelify-latin-' + w + '.woff2', w, LAT.replace('U+0000-00FF', 'U+0000-002F,U+003A-00FF'))).join('');
 }
 
 // Боковая панель на сайте дневника.

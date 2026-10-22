@@ -218,3 +218,11 @@ function pmgUpcomingChecks(lessons, hwItems, now) {
 if (typeof module !== 'undefined') {
   module.exports = { pmgFindDateInText, pmgHwTags, pmgCheckKind, pmgBuildHomework, pmgNextDayTodo, pmgUpcomingChecks };
 }
+
+// Сводка для вечернего напоминания: ближайший день сдачи и ключи заданий на него.
+// Сервер сам сверит их с галочками (они общие для телефона и компьютера) и в 19:00 пришлёт «на завтра осталось N».
+function pmgRemindSummary(items) {
+  const next = pmgNextDayTodo(items || []);
+  if (!next.day) return null;
+  return { day: pmgDayKey(next.day), items: next.items.map((h) => ({ k: h.key, s: h.subject })) };
+}
