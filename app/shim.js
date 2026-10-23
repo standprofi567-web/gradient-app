@@ -1,4 +1,4 @@
-// Gradient на сайте: подменяем API расширения (chrome.storage, chrome.runtime), чтобы общий код работал в браузере.
+// Gradely на сайте: подменяем API расширения (chrome.storage, chrome.runtime), чтобы общий код работал в браузере.
 var PMG_WEB = true;
 (function () {
   const PFX = 'gx:';
@@ -11,7 +11,7 @@ var PMG_WEB = true;
   };
   const write = (k, v) => {
     mem[k] = v;
-    try { localStorage.setItem(PFX + k, JSON.stringify(v)); } catch (e) { console.warn('Gradient: не хватило места для', k, e); }
+    try { localStorage.setItem(PFX + k, JSON.stringify(v)); } catch (e) { console.warn('Gradely: не хватило места для', k, e); }
   };
   const drop = (k) => { mem[k] = undefined; try { localStorage.removeItem(PFX + k); } catch (_) { /* ничего */ } };
   const allKeys = () => { const out = []; try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.startsWith(PFX)) out.push(k.slice(PFX.length)); } } catch (_) { /* ничего */ } return out; };

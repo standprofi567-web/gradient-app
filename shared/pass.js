@@ -1,8 +1,8 @@
-// Gradient Pass: вкладки «Pass» и «Друзья», профиль, стена стикеров группы и анимации игры.
+// Gradely Pass: вкладки «Pass» и «Друзья», профиль, стена стикеров группы и анимации игры.
 
 const PMG_KIND_NAMES = {
   mark: 'Оценки', rush: 'Рывки', comeback: 'Камбэки', up: 'Рост прогноза', final: 'Итоговые', hw: 'Домашка', hwok: 'Домашка с оценкой',
-  nodebt: 'Без долгов', present: 'Без пропусков', login: 'Заходы в Gradient', report: 'Отчёт родителям', quest: 'Задания дня',
+  nodebt: 'Без долгов', present: 'Без пропусков', login: 'Заходы в Gradely', report: 'Отчёт родителям', quest: 'Задания дня',
   wquest: 'Задания недели', ach: 'Достижения', streak5: 'Серии пятёрок', goal: 'Общая цель'
 };
 const PMG_PRIVACY = [
@@ -40,9 +40,9 @@ function pmgFmtXp(n) { return String(Math.round(n || 0)).replace(/\B(?=(\d{3})+(
 function pmgErrText(e) {
   return ({
     not_found: 'Такого кода нет. Проверь буквы и цифры.', closed: 'Создатель закрыл вступление в эту группу.', full: 'В группе уже 30 человек.',
-    too_many_groups: 'Можно состоять максимум в 3 группах.', student_taken: 'На этого ученика уже есть профиль Gradient на другом компьютере.',
+    too_many_groups: 'Можно состоять максимум в 3 группах.', student_taken: 'На этого ученика уже есть профиль Gradely на другом компьютере.',
     owner_must_transfer: 'Сначала передай роль создателя другому участнику.', forbidden: 'Это может только создатель группы.', too_many_helpers: 'Помощников может быть не больше двух.',
-    signed_out: 'Вход в Gradient потерялся. Начни сезон заново.', off: 'Этот игрок выключил «Подбодрить».'
+    signed_out: 'Вход в Gradely потерялся. Начни сезон заново.', off: 'Этот игрок выключил «Подбодрить».'
   })[e] || ('Не получилось: ' + e);
 }
 
@@ -71,18 +71,26 @@ function pmgPassView() {
   // Шапка
   const phaseName = { warmup: 'Разгон: задания дня ×1,25', final: 'Финишная прямая: задания недели ×1,5', main: '', over: 'Итоги сезона', soon: '' }[S.phase] || '';
   const st = G.streak;
-  h += '<section class="pass-hero glare">' + pmgLevelRing(L.level, L.need ? L.into / L.need : 1, 116, L.stars) +
-    '<div class="ph-main"><div class="ph-season"><span class="ph-name">Сезон «' + pmgEsc(S.name) + '»</span>' +
-    (S.phase !== 'over' && S.phase !== 'soon' ? '<span class="muted ph-left"><i class="ph-dot"> · </i>' + (G.daysLeft === 0 ? 'последний день' : 'осталось ' + G.daysLeft + '\u00a0' + pmgPlural(G.daysLeft, ['день', 'дня', 'дней'])) + '</span>' : '') + '</div>' +
-    '<div class="ph-xp"><b data-count-int="' + Math.round(G.xp) + '">' + pmgFmtXp(G.xp) + '</b> XP' +
-    (L.level < 50 ? '<span class="muted"> · до ' + (L.level + 1) + '-го уровня ' + pmgFmtXp(L.need - L.into) + '</span>' : '<span class="muted"> · до звезды ' + pmgFmtXp(L.need - L.into) + '</span>') + '</div>' +
-    '<div class="xpbar"><i style="width:' + (L.need ? L.into / L.need * 100 : 100).toFixed(1) + '%"></i></div>' +
-    '<div class="ph-chips">' +
-    '<span class="chip flame-chip' + (st.todayCounted ? ' lit' : '') + '" data-tip="' + (st.todayCounted ? 'Сегодня огонёк горит' : 'Чтобы огонёк горел сегодня, хватит одного: открыть Gradient, отметить домашку, получить 4 или 5 или выполнить задание дня') + '. Выходные и болезнь огонёк не трогают; один пропущенный учебный день в неделю прощается сам' + (st.restLeft === false ? ' (на этой неделе уже использован)' : '') + '">' + pmgFlameSvg(st.days, 22) +
-    '<b>' + st.days + '</b> ' + pmgPlural(st.days, ['день', 'дня', 'дней']) + (st.mult > 1 ? ' · ×' + String(st.mult).replace('.', ',') : '') + '</span>' +
-    (st.freezes ? '<span class="chip" data-tip="Заморозка спасёт огонёк, если день не засчитан">' + pmgRewardIcon({ kind: 'freeze' }, 18) + ' ×' + st.freezes + '</span>' : '') +
-    '<span class="chip">сегодня <b>+' + pmgFmtXp(G.todayXp) + '</b></span><span class="chip">неделя <b>' + pmgFmtXp(G.weekXp) + '</b></span>' +
-    (phaseName ? '<span class="chip accent">' + phaseName + '</span>' : '') + '</div></div></section>';
+  // Кольца как в «Фитнесе»: уровень, задания дня, домашка на завтра
+  const qd = (G.quests.today || []).filter((q) => q.done).length, qn = (G.quests.today || []).length || 3;
+  let hwDone = 0, hwAll = 0;
+  try { const nx = pmgNextDayTodo(pmgHomework()); hwAll = nx.items.length; hwDone = nx.items.filter((i) => i.done).length; } catch (_) { /* нет домашки */ }
+  const lvFrac = L.need ? L.into / L.need : 1;
+  h += '<div class="ph-title"><h1 class="ph-h1">Gradely Pass</h1><span class="muted">Сезон «' + pmgEsc(S.name) + '»' + (S.phase !== 'over' && S.phase !== 'soon' ? ' · ' + (G.daysLeft === 0 ? 'последний день' : 'осталось ' + G.daysLeft + '\u00a0' + pmgPlural(G.daysLeft, ['день', 'дня', 'дней'])) : '') + '</span></div>';
+  h += '<section class="pass-hero"><div class="ph-rings">' +
+    pmgRings([{ frac: lvFrac, color: 'var(--ring-1)' }, { frac: qn ? qd / qn : 0, color: 'var(--ring-2)' }, { frac: hwAll ? hwDone / hwAll : 0, color: 'var(--ring-3)' }], 132) +
+    '<div class="ph-legend">' +
+      '<div><i style="background:var(--ring-1)"></i><b>' + pmgFmtXp(L.into) + '<span> / ' + pmgFmtXp(L.need || L.into) + ' XP</span></b><small>до ' + (L.level < 50 ? (L.level + 1) + '-го уровня' : 'новой звезды') + '</small></div>' +
+      '<div><i style="background:var(--ring-2)"></i><b>' + qd + '<span> / ' + qn + '</span></b><small>задания дня</small></div>' +
+      '<div><i style="background:var(--ring-3)"></i><b>' + hwDone + '<span> / ' + hwAll + '</span></b><small>домашка на завтра</small></div>' +
+    '</div></div>' +
+    '<div class="ph-level"><div class="ph-lv-top"><b class="ph-lv">' + L.level + '</b><div><b>Уровень' + (L.stars ? ' · ★ ' + L.stars : '') + '</b><div class="muted">' + pmgFmtXp(G.xp) + ' XP за сезон · сегодня +' + pmgFmtXp(G.todayXp) + '</div></div></div>' +
+      '<div class="xpbar"><i style="width:' + (lvFrac * 100).toFixed(1) + '%"></i></div>' +
+      '<div class="ph-streak" data-tip="' + (st.todayCounted ? 'Сегодня огонёк горит' : 'Чтобы огонёк горел сегодня, хватит одного: открыть Gradely, отметить домашку, получить 4 или 5 или выполнить задание дня') + '. Выходные и болезнь огонёк не трогают; один пропущенный учебный день в неделю прощается сам' + (st.restLeft === false ? ' (на этой неделе уже использован)' : '') + '">' +
+        pmgFlameSvg(st.days, 40) + '<div><b>' + st.days + ' ' + pmgPlural(st.days, ['день', 'дня', 'дней']) + (st.mult > 1 ? ' · ×' + String(st.mult).replace('.', ',') : '') + '</b><div class="muted">' + (st.todayCounted ? 'огонёк горит' : 'сегодня ещё не засчитан') + '</div></div>' +
+        (st.freezes ? '<span class="ph-freeze" data-tip="Заморозка спасёт огонёк, если день не засчитан">' + pmgE3d('snowflake', 20) + '×' + st.freezes + '</span>' : '') + '</div>' +
+      (phaseName ? '<div class="ph-phase">' + phaseName + '</div>' : '') +
+    '</div></section>';
 
   if (st.restoreOffer) h += '<section class="card restore"><b>Огонёк из ' + st.restoreOffer.value + ' дней погас.</b> Выполни все 3 задания дня сегодня — и серия вернётся. Так можно один раз за сезон.</section>';
   if (!prof.created) {
@@ -129,7 +137,7 @@ function pmgNodePreview(G, l) {
 }
 
 function pmgRewardHint(r) {
-  return ({ frame: 'обводка аватара в рейтинге и на стене группы', title: 'подпись под ником', theme: 'цвет акцента Gradient', bgpack: 'значки фона панели', skin: 'вид твоей карточки в группе',
+  return ({ frame: 'обводка аватара в рейтинге и на стене группы', title: 'подпись под ником', theme: 'цвет акцента Gradely', bgpack: 'значки фона панели', skin: 'вид твоей карточки в группе',
     reaction: 'новая реакция для ленты', freeze: 'спасает огонёк в пропущенный день', aura: 'свечение вокруг твоего стикера', badge: 'остаётся на полке навсегда',
     avatar: 'аватар-стикер', anim: 'эффект при новом уровне', sticker: 'в альбом сезона' })[r.kind] || '';
 }
@@ -267,7 +275,7 @@ function pmgFriendsView() {
 function pmgStartView() {
   const first = pmg.data && pmg.data.student && pmg.data.student.name ? pmg.data.student.name.split(/\s+/)[0] : '';
   return '<section class="card onboard"><div class="ob-art">' + pmgAvatarSvg('planet-1', 72) + pmgAvatarSvg('planet-6', 56) + pmgAvatarSvg('planet-16', 64) + '</div>' +
-    '<h2 class="y2k-chrome">Gradient Pass</h2><p class="ob-season"><span class="y2k-tape">сезон «' + pmgEsc((pmgGV() && pmgGV().season.name) || 'Стикербомб') + '»</span></p><p>Стена стикеров группы, рейтинг недели, лента достижений и цель на всю группу. Друзья видят твой уровень, очки и достижения — <b>но не оценки</b>.</p>' +
+    '<h2 class="y2k-chrome">Gradely Pass</h2><p class="ob-season"><span class="y2k-tape">сезон «' + pmgEsc((pmgGV() && pmgGV().season.name) || 'Стикербомб') + '»</span></p><p>Стена стикеров группы, рейтинг недели, лента достижений и цель на всю группу. Друзья видят твой уровень, очки и достижения — <b>но не оценки</b>.</p>' +
     '<ul class="ob-points"><li>Никаких паролей: вход создаётся сам, анонимно.</li><li>На сервер уходят только очки — без предметов, оценок, домашки и ФИО.</li><li>Удалить все свои данные можно одной кнопкой.</li></ul>' +
     '<label class="field"><span>Твой ник в группе</span><input class="in" data-act="nick-in" maxlength="16" placeholder="от 3 до 16 символов" value="' + pmgEsc(pmg.nickDraft != null ? pmg.nickDraft : first) + '"></label>' +
     (pmg.obError ? '<p class="err">' + pmgEsc(pmg.obError) + '</p>' : '') +
@@ -301,78 +309,40 @@ function pmgPrivacyRows(priv, act) {
   return PMG_PRIVACY.map(([k, l, note, fixed]) => '<label class="priv' + (fixed ? ' fixed' : '') + '"><input type="checkbox" data-act="' + act + '" data-k="' + k + '"' + (fixed || priv[k] ? ' checked' : '') + (fixed ? ' disabled' : '') + '><span class="sw"></span><span class="pv-t">' + l + (note ? '<small>' + note + '</small>' : '') + '</span></label>').join('');
 }
 
-// ---------- Лесенка группы: фигурки с фото вместо головы стоят на ступеньках по месту ----------
-const PMG_PENS = { ink: ['#17141F', 'Чёрная ручка'], blue: ['#2F4BFF', 'Синяя ручка'], pink: ['#FF2E93', 'Розовая гелевая'], violet: ['#7A3BF0', 'Фиолетовая'], green: ['#0B9B6A', 'Зелёная'], orange: ['#F26A1B', 'Оранжевый маркер'], teal: ['#0891B2', 'Бирюзовая'], red: ['#E11D48', 'Красная, как у учителя'] };
-const PMG_FIG_POOL = ['walk', 'cross', 'easy', 'point', 'polka', 'rest', 'shirt', 'blazer', 'walk2', 'cross2', 'point2', 'rest2', 'dance2', 'blazer2'];
-function pmgFigOf(p, lead) {
-  const eq = p.equipped || {};
-  if (eq.body && PMG_FIGS[eq.body]) return eq.body;
-  if (lead) return 'dance';
-  return PMG_FIG_POOL[(pmgHash(String(p.id || p.nick)) >>> 0) % PMG_FIG_POOL.length];
-}
-function pmgPenOf(p) {
-  const eq = p.equipped || {};
-  if (eq.pen && PMG_PENS[eq.pen]) return PMG_PENS[eq.pen][0];
-  const keys = Object.keys(PMG_PENS);
-  return PMG_PENS[keys[(pmgHash(String(p.id || p.nick)) >>> 3) % keys.length]][0];
-}
-// Фигурка с головой-фото. h — высота в пикселях.
-function pmgFigure(p, h, opts) {
-  opts = opts || {};
-  const id = opts.fig || pmgFigOf(p, opts.lead), f = PMG_FIGS[id] || PMG_FIGS.walk;
-  const [x0, y0, w0, h0] = f.vb, k = h / h0, w = Math.round(w0 * k);
-  const H = PMG_FIG_HEAD, hs = Math.round(H.r * 2 * k);
-  const hx = ((H.cx - x0) / w0 * 100).toFixed(2), hy = ((H.cy - y0) / h0 * 100).toFixed(2);
-  return '<span class="fig" style="--fw:' + w + 'px;--fh:' + h + 'px;color:' + (opts.pen || pmgPenOf(p)) + '">' +
-    '<svg class="fig-body" viewBox="' + f.vb.join(' ') + '" width="' + w + '" height="' + h + '" aria-hidden="true">' + f.g + '</svg>' +
-    '<span class="fig-head" style="left:' + hx + '%;top:' + hy + '%">' + pmgAvatar(p, hs) + '</span></span>';
-}
-
+// ---------- Пьедестал группы: тройка лучших недели на ступеньках 2-1-3 ----------
 // Места при равных очках одинаковые: 10, 10, 7 → 1, 1, 3. В понедельник у всех 0 — все на первой ступеньке.
 function pmgRanks(values) {
   return values.map((v) => 1 + values.filter((x) => x > v).length);
 }
 
-// rows: [{ p, v, label, sleep }] — по убыванию; рисуем слева направо снизу вверх, лидер справа на самой высокой ступеньке.
+// rows: [{ p, v, label, sleep }] — по убыванию. Рисуем пьедестал: 2-е место слева, 1-е в центре, 3-е справа.
+// При равных очках игроки стоят рядом на одной ступеньке. Нажатие на аватар открывает карточку игрока.
 function pmgStairs(rows, o) {
   o = o || {};
-  const n = rows.length;
-  if (!n) return '';
   const awake = rows.filter((r) => !r.sleep);
   const ranks = pmgRanks(awake.map((r) => r.v || 0));
-  const rankOf = new Map(awake.map((r, i) => [r, ranks[i]]));
-  // Высота — по номеру ступеньки среди разных мест, чтобы равные стояли вровень
-  const levels = [...new Set(ranks)].sort((a, b) => a - b);
-  const k = levels.length;
-  const rise = k > 1 ? Math.min(26, Math.max(10, 150 / (k - 1))) : 0;
-  const base = 66, top = base + rise * Math.max(0, k - 1);
-  const theme = (pmgGV() && pmgGV().season.theme) || 'sticker';
-  const fresh = o.animate ? ' hop' : '';
-  let cols = '';
-  rows.slice().reverse().forEach((r, ri) => {
-    const p = r.p, place = r.sleep ? null : rankOf.get(r);
-    const isLead = !r.sleep && place === 1 && r.v > 0;
-    const hgt = r.sleep ? base : base + rise * (k - 1 - levels.indexOf(place));
-    const pl = r.sleep ? 'zz' : place;
-    cols += '<button class="st-col' + (p.me ? ' me' : '') + (r.sleep ? ' sleep' : '') + (isLead ? ' lead' : '') + (o.sel === p.id ? ' sel' : '') + (place <= 3 && !r.sleep ? ' p' + place : '') +
-      '" style="--i:' + ri + ';--bh:' + Math.round(hgt) + 'px" data-act="' + (o.act || 'pl') + '" data-v="' + pmgEsc(p.id) + '" aria-label="' + pmgEsc(p.nick) + ', ' + (r.sleep ? 'давно не заходил' : place + '-е место') + (r.label ? ', ' + pmgEsc(r.label) : '') + '">' +
-      '<span class="st-who">' + (isLead ? '<span class="st-crown">' + pmgReactionIcon('crown', 26) + '</span>' : '') +
-      (p.me ? '<span class="st-me">ты</span>' : '') + (r.gain ? '<span class="st-gain">+' + pmgFmtXp(r.gain) + '</span>' : '') + (r.sleep ? '<span class="st-zz">z<i>z</i><b>z</b></span>' : '') +
-      pmgFigure(p, o.figH || (pmg.mode === 'page' && typeof PMG_WEB === 'undefined' ? 136 : 116), { lead: isLead }) + '</span>' +
-      '<span class="st-step"><b class="st-n">' + pl + '</b><span class="st-nick">' + pmgEsc(p.nick) + '</span>' + (r.label ? '<span class="st-v">' + pmgEsc(r.label) + '</span>' : '') + '</span></button>';
-  });
-  return '<div class="stairs th-' + theme + fresh + '" style="--n:' + n + ';--top:' + Math.round(top) + 'px"><div class="st-scroll" data-stairs="' + pmgEsc(o.key || '') + '"><div class="st-row">' + cols + '</div></div></div>';
+  const top = awake.map((r, i) => ({ r, rank: ranks[i] })).filter((x) => x.rank <= 3 && x.r.v > 0);
+  const who = (x) => {
+    const p = x.r.p;
+    return '<button class="pod-who' + (p.me ? ' me' : '') + (o.sel === p.id ? ' sel' : '') + '" data-act="' + (o.act || 'pl') + '" data-v="' + pmgEsc(p.id) + '" aria-label="' + pmgEsc(p.nick) + ', ' + x.rank + '-е место, ' + pmgEsc(x.r.label || '') + '">' +
+      pmgAvatar(p, 52) + '<b>' + pmgEsc(p.nick) + (p.me ? ' <small>ты</small>' : '') + '</b><small>' + pmgEsc(x.r.label || '') + '</small></button>';
+  };
+  if (!top.length) {
+    // Неделя только началась (у всех 0) — просто показываем, кто в группе
+    return '<div class="podium empty"><p class="muted">Неделя только началась — у всех пока 0 XP. Первые очки поднимут на пьедестал.</p><div class="pod-row">' +
+      awake.slice(0, 8).map((r) => '<button class="pod-mini" data-act="' + (o.act || 'pl') + '" data-v="' + pmgEsc(r.p.id) + '" aria-label="' + pmgEsc(r.p.nick) + '">' + pmgAvatar(r.p, 36) + '</button>').join('') + '</div></div>';
+  }
+  const col = (rank, h) => {
+    const list = top.filter((x) => x.rank === rank).slice(0, 3);
+    if (!list.length) return '<div class="pod-col none"></div>';
+    return '<div class="pod-col r' + rank + '"><div class="pod-people">' + list.map(who).join('') + '</div>' +
+      '<div class="pod-step" style="--h:' + h + 'px">' + pmgE3d('medal' + rank, 38) + '</div></div>';
+  };
+  return '<div class="podium' + (o.animate ? ' hop' : '') + '">' + col(2, 64) + col(1, 92) + col(3, 44) + '</div>';
 }
-// После отрисовки: прокрутить лесенку так, чтобы было видно себя (или вернуть прокрутку, которую человек выбрал сам)
-function pmgStairsAfter(root) {
-  (root || document).querySelectorAll('.st-scroll').forEach((el) => {
-    const key = el.dataset.stairs || '';
-    pmg.stairsScroll = pmg.stairsScroll || {};
-    if (pmg.stairsScroll[key] != null) el.scrollLeft = pmg.stairsScroll[key];
-    else { const me = el.querySelector('.st-col.me') || el.querySelector('.st-col.lead'); if (me) el.scrollLeft = me.offsetLeft - el.clientWidth / 2 + me.offsetWidth / 2; }
-    el.addEventListener('scroll', () => { pmg.stairsScroll[key] = el.scrollLeft; }, { passive: true });
-  });
-}
+
+// Раньше прокручивала лесенку к себе; у пьедестала прокрутки нет.
+function pmgStairsAfter() {}
 
 // Группа в расширении: лесенка по XP недели (после сезона — по XP за сезон)
 function pmgArena(players, data) {
@@ -803,7 +773,7 @@ function pmgStreakScene(k, done) {
   const todayIdx = week.findIndex((d) => d.iso === pmgIso(new Date()));
   const el = document.createElement('div');
   el.className = 'streak-scene' + (calm ? ' calm' : '') + (n >= 7 ? ' hot' : '');
-  const sparks = Array.from({ length: 14 }, (_, i) => '<i style="--a:' + (i * 360 / 14) + 'deg;--d:' + (60 + (i % 3) * 18) + 'px;--c:' + ['#FF5FB8', '#FFE14D', '#D4FF3A', '#2F4BFF'][i % 4] + '"></i>').join('');
+  const sparks = Array.from({ length: 14 }, (_, i) => '<i style="--a:' + (i * 360 / 14) + 'deg;--d:' + (60 + (i % 3) * 18) + 'px;--c:' + ['#FF9F0A', '#FFD60A', '#FF6B35', '#FFB340'][i % 4] + '"></i>').join('');
   el.innerHTML = '<div class="sk-box" role="dialog" aria-label="Огонёк: ' + n + ' ' + pmgPlural(n, ['день', 'дня', 'дней']) + ' подряд">' +
     '<div class="sk-flame"><div class="sk-burst">' + sparks + '</div>' + pmgFlameSvg(Math.max(n, 3), 120) + '</div>' +
     '<div class="sk-num"><span class="sk-roll"><b>' + from + '</b><b>' + n + '</b></span></div>' +

@@ -1,4 +1,4 @@
-// Gradient Pass: считает очки, огонёк, задания и достижения по данным дневника.
+// Gradely Pass: считает очки, огонёк, задания и достижения по данным дневника.
 // Работает целиком на компьютере. На сервер уходят только события вида {ref, kind, day, xp} — без предметов и текстов.
 
 const PMG_CONTROL_RE = /провер|контрол|тест|диктант|изложен|сочинен|самостоят|зач[её]т/i;
@@ -205,7 +205,7 @@ function pmgGame(input) {
   // --- Огонёк ---
   const earnedFreezes = [8, 18, 28, 38].filter((l) => level >= l).length;
   // Огонёк — про привычку, а не про удачу с оценками. Учебный день засчитан, если было хоть одно:
-  // открыл Gradient, отметил домашку, появилась 4 или 5, выполнил задание дня.
+  // открыл Gradely, отметил домашку, появилась 4 или 5, выполнил задание дня.
   // Не засчитан: первый такой день в неделе прощается сам («передышка»), дальше спасает заморозка, потом огонёк гаснет.
   // Выходные, каникулы и дни болезни огонёк не трогают. Сегодняшний день не гасит огонёк, пока не закончился.
   let streak = 0, best = 0, used = 0, everBroken = false, restoreUsed = !!(input.restoreUsed), lost = null;
@@ -340,7 +340,7 @@ function pmgGame(input) {
       if (week.length && week.every((h) => h.doneAt && h.doneAt < dayEnd(d))) add('nodebt:' + iso, 'nodebt', iso, 30, 'Без долгов');
     }
     if (d < today && info.lessons.length && !info.abs.length) add('present:' + iso, 'present', iso, 30, 'День без пропусков');
-    if (logins[iso]) add('login:' + iso, 'login', iso, 10, 'Зашёл в Gradient');
+    if (logins[iso]) add('login:' + iso, 'login', iso, 10, 'Зашёл в Gradely');
   });
   if (actions['report:' + season.id]) {
     const rd = pmgSod(actions['report:' + season.id]);

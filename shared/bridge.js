@@ -1,12 +1,12 @@
-// Мост Gradient: свой сервер в России, который ходит в дневник за тебя.
+// Мост Gradely: свой сервер в России, который ходит в дневник за тебя.
 // Зачем: чтобы оценки обновлялись и уведомления приходили, даже когда компьютер выключен,
 // и чтобы приложение на телефоне могло само войти в дневник (через Госуслуги в браузере).
 // Здесь — запросы к мосту (работают в фоне расширения и на сайте) и карточка «Вход в дневник».
 //
 // Как устроено:
-//  • Мост получает СВОЙ вход в аккаунт Gradient по одноразовому коду — как ещё одно устройство.
+//  • Мост получает СВОЙ вход в аккаунт Gradely по одноразовому коду — как ещё одно устройство.
 //  • Вход в дневник (токен) приходит одним из путей: расширение передаёт его само после каждого
-//    обновления; на телефоне — закладка «Gradient» в браузере, которую нажимаешь на сайте дневника.
+//    обновления; на телефоне — закладка «Gradely» в браузере, которую нажимаешь на сайте дневника.
 //  • Мост раз в 15 минут смотрит дневник, кладёт снимок на сервер и шлёт уведомления о новых оценках.
 //  • Всё, что происходит со входом (получен, закончился, ошибки), мост пишет в журнал — он виден здесь.
 
@@ -109,7 +109,7 @@ const PMG_BR_EVENTS = {
 function pmgBrErrText(e) {
   return ({ bridge_down: 'Сервер-мост не отвечает. Возможно, он ещё не запущен или перезагружается.', no_bridge: 'Сервер-мост не настроен.', auth: 'Вход в дневник закончился — войди заново.',
     no_diary: 'Серверу пока не передан вход в дневник.', bad_key: 'Закладка устарела — сделай новую.', not_linked: 'Сервер не подключён к аккаунту — включи вход заново.',
-    signed_out: 'Сначала подключи Gradient (код с компьютера или «Начать без компьютера»).', net: 'Дневник не ответил серверу. Попробуем ещё раз через 15 минут.' })[e] || ('Не получилось: ' + (e || 'нет связи'));
+    signed_out: 'Сначала подключи Gradely (код с компьютера или «Начать без компьютера»).', net: 'Дневник не ответил серверу. Попробуем ещё раз через 15 минут.' })[e] || ('Не получилось: ' + (e || 'нет связи'));
 }
 
 function pmgBrWhen(ts) {
@@ -124,11 +124,11 @@ function pmgBrWhen(ts) {
 // Закладка: читает вход с открытого сайта дневника и отправляет его мосту вместе с личным ключом.
 function pmgBookmarklet(key) {
   const js = "(function(){var t=sessionStorage.getItem('X-JWT-Token-FOREIGN')||sessionStorage.getItem('X-JWT-Token');" +
-    "if(!/petersburgedu/.test(location.host)){alert('Gradient: открой сначала сайт дневника');return}" +
-    "if(!t){alert('Gradient: сначала войди в дневник');return}" +
+    "if(!/petersburgedu/.test(location.host)){alert('Gradely: открой сначала сайт дневника');return}" +
+    "if(!t){alert('Gradely: сначала войди в дневник');return}" +
     "fetch('" + PMG_BRIDGE_URL + "/diary/token',{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({key:'" + key + "',token:decodeURIComponent(t),source:'bookmarklet'})})" +
-    ".then(function(r){return r.json()}).then(function(j){alert(j.ok?'Gradient: вход передан ✓ Возвращайся в приложение':'Gradient: '+(j.error==='bad_key'?'закладка устарела, сделай новую':j.error==='auth'?'дневник не пустил, войди ещё раз':j.error))})" +
-    ".catch(function(){alert('Gradient: нет связи с сервером')})})()";
+    ".then(function(r){return r.json()}).then(function(j){alert(j.ok?'Gradely: вход передан ✓ Возвращайся в приложение':'Gradely: '+(j.error==='bad_key'?'закладка устарела, сделай новую':j.error==='auth'?'дневник не пустил, войди ещё раз':j.error))})" +
+    ".catch(function(){alert('Gradely: нет связи с сервером')})})()";
   return 'javascript:' + encodeURIComponent(js).replace(/%20/g, ' ').replace(/%2C/g, ',').replace(/%3A/g, ':').replace(/%2F/g, '/').replace(/%3D/g, '=').replace(/%3B/g, ';').replace(/%2B/g, '+');
 }
 
@@ -142,7 +142,7 @@ function pmgBridgeCard(opts) {
     (on ? '<button class="icon-btn' + (pmg.brBusy ? ' spin' : '') + '" data-act="br-refresh" aria-label="Обновить" data-tip="Проверить ещё раз">' + pmgIcon('refresh') + '</button>' : '') + '</div>';
   if (!on) {
     h += '<p>' + (web ? 'Чтобы оценки и домашка приходили на телефон без компьютера' : 'Чтобы оценки обновлялись и уведомления приходили, даже когда компьютер выключен') +
-      ', их может забирать <b>сервер Gradient в России</b>: раз в 15 минут он сам смотрит дневник с твоим входом.</p>' +
+      ', их может забирать <b>сервер Gradely в России</b>: раз в 15 минут он сам смотрит дневник с твоим входом.</p>' +
       '<p class="muted small">Для этого сервер хранит вход в дневник (зашифрованным) и видит то же, что ты в дневнике. Пароль от Госуслуг он не видит и не получает. Выключить можно в любой момент — вход сразу удалится с сервера.</p>' +
       '<div class="row-btns"><button class="btn primary" data-act="br-on"' + (pmg.brBusy ? ' disabled' : '') + '>' + (pmg.brBusy ? 'Подключаю…' : 'Разрешить и включить') + '</button></div>';
     if (pmg.brErr) h += '<p class="err">' + pmgEsc(pmgBrErrText(pmg.brErr)) + '</p>';
@@ -166,11 +166,11 @@ function pmgBridgeCard(opts) {
     h += '<div class="br-login"><a class="btn primary big br-gos" href="' + PMG_DIARY_SITE + '/" target="_blank" rel="noopener"><span class="gos-ic" aria-hidden="true">Г</span>Войти через Госуслуги</a>';
     if (web) {
       h += '<ol class="br-steps"><li>Нажми кнопку выше и войди в дневник через Госуслуги, как обычно.</li>' +
-        '<li>Когда откроется дневник, нажми в браузере закладку <b>«Gradient»</b>. Появится «вход передан ✓».</li>' +
+        '<li>Когда откроется дневник, нажми в браузере закладку <b>«Gradely»</b>. Появится «вход передан ✓».</li>' +
         '<li>Вернись сюда и нажми <b>«Обновить»</b>.</li></ol>' +
-        (pmg.brKey ? pmgBookmarkletHelp(pmg.brKey) : '<button class="btn small" data-act="br-key"' + (pmg.brBusy ? ' disabled' : '') + '>Сделать закладку «Gradient»</button><span class="muted small"> — один раз на этом телефоне</span>');
+        (pmg.brKey ? pmgBookmarkletHelp(pmg.brKey) : '<button class="btn small" data-act="br-key"' + (pmg.brBusy ? ' disabled' : '') + '>Сделать закладку «Gradely»</button><span class="muted small"> — один раз на этом телефоне</span>');
     } else {
-      h += '<p class="muted small">Войди в дневник на этом компьютере — Gradient сам передаст вход серверу, и дальше всё будет работать без компьютера.</p>';
+      h += '<p class="muted small">Войди в дневник на этом компьютере — Gradely сам передаст вход серверу, и дальше всё будет работать без компьютера.</p>';
     }
     h += '</div>';
   }
@@ -189,13 +189,13 @@ function pmgBridgeCard(opts) {
 function pmgBookmarkletHelp(key) {
   const code = pmgBookmarklet(key);
   const ios = /iPhone|iPad/.test(navigator.userAgent || '');
-  return '<details class="br-bm" open><summary>Как сделать закладку «Gradient»</summary>' +
+  return '<details class="br-bm" open><summary>Как сделать закладку «Gradely»</summary>' +
     '<div class="hl-copy"><code>' + pmgEsc(code.slice(0, 60)) + '…</code><button class="btn small" data-act="br-copy" data-v="' + pmgEsc(code) + '">Копировать</button></div>' +
     (ios
-      ? '<ol class="br-steps"><li>Нажми «Копировать».</li><li>В Safari открой любую страницу, нажми «Поделиться» → <b>«Добавить закладку»</b>, назови <b>Gradient</b>, сохрани.</li>' +
-        '<li>Открой закладки (значок книжки) → «Изменить» → закладка Gradient → в поле адреса удали всё и вставь скопированное.</li></ol>'
-      : '<ol class="br-steps"><li>Нажми «Копировать».</li><li>В Chrome нажми ☆ (добавить в закладки), потом «Изменить». Название — <b>Gradient</b>, в поле адреса вставь скопированное.</li>' +
-        '<li>На сайте дневника набери в адресной строке <b>Gradient</b> и выбери закладку со звёздочкой.</li></ol>') +
+      ? '<ol class="br-steps"><li>Нажми «Копировать».</li><li>В Safari открой любую страницу, нажми «Поделиться» → <b>«Добавить закладку»</b>, назови <b>Gradely</b>, сохрани.</li>' +
+        '<li>Открой закладки (значок книжки) → «Изменить» → закладка Gradely → в поле адреса удали всё и вставь скопированное.</li></ol>'
+      : '<ol class="br-steps"><li>Нажми «Копировать».</li><li>В Chrome нажми ☆ (добавить в закладки), потом «Изменить». Название — <b>Gradely</b>, в поле адреса вставь скопированное.</li>' +
+        '<li>На сайте дневника набери в адресной строке <b>Gradely</b> и выбери закладку со звёздочкой.</li></ol>') +
     '<p class="muted small">В закладке твой личный ключ — никому её не отправляй. Если потеряешь, сделай новую: старая перестанет работать.</p></details>';
 }
 

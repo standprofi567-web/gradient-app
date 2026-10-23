@@ -1,5 +1,5 @@
-// Офлайн-кэш Gradient: сначала сеть (чтобы обновления приходили сразу), без сети — сохранённая копия.
-const VER = '202610221608';
+// Офлайн-кэш Gradely: сначала сеть (чтобы обновления приходили сразу), без сети — сохранённая копия.
+const VER = '202610231457';
 const CACHE = 'gradient-' + VER;
 self.addEventListener('install', (e) => { self.skipWaiting(); });
 self.addEventListener('activate', (e) => {
@@ -18,7 +18,7 @@ self.addEventListener('fetch', (e) => {
 self.addEventListener('push', (e) => {
   let d = {};
   try { d = e.data ? e.data.json() : {}; } catch (_) { d = { body: e.data && e.data.text() }; }
-  e.waitUntil(self.registration.showNotification(d.title || 'Gradient', {
+  e.waitUntil(self.registration.showNotification(d.title || 'Gradely', {
     body: d.body || '', tag: d.tag || undefined, renotify: !!d.tag, icon: 'icons/icon192.png', badge: 'icons/favicon64.png', data: { url: d.url || './' }
   }));
 });

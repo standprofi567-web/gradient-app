@@ -1,4 +1,4 @@
-// Gradient Pass в фоновом скрипте: пересчёт очков, выбор заданий, синхронизация с сервером.
+// Gradely Pass в фоновом скрипте: пересчёт очков, выбор заданий, синхронизация с сервером.
 // Результат кладётся в chrome.storage (pmg_game), страницы только рисуют его.
 
 const PMG_GAME_KEYS = ['pmg_mark_seen', 'pmg_cache', 'pmg_settings', 'pmg_done', 'pmg_hw_due', 'pmg_logins', 'pmg_actions', 'pmg_quests', 'pmg_wquests', 'pmg_game', 'pmg_profile', 'pmg_groups', 'pmg_seed'];

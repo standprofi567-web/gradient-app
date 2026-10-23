@@ -1,19 +1,19 @@
-// Вкладка «Профиль»: кто я в Gradient Pass — фигурка, ник, награды, что видят друзья и мои данные.
+// Вкладка «Профиль»: кто я в Gradely Pass — аватар, ник, награды, что видят друзья и мои данные.
 // Одна и та же вкладка в расширении и в приложении на телефоне. Разделы открываются по одному,
 // чтобы не рисовать сразу все позы, наклейки и награды (это и понятнее, и легче для памяти).
 
 const PMG_PROF_SECTIONS = [['look', 'Внешность'], ['rewards', 'Награды'], ['privacy', 'Что видят друзья'], ['data', 'Мои данные']];
-const PMG_LOOK_PARTS = [['photo', 'Фото'], ['pose', 'Поза'], ['pen', 'Цвет'], ['sticker', 'Наклейка']];
+const PMG_LOOK_PARTS = [['photo', 'Фото'], ['sticker', 'Аватар']];
 const PMG_EQUIP_KINDS = [
   ['frame', 'Рамка', 'обводка аватара в рейтинге'],
   ['title', 'Титул', 'подпись под ником'],
-  ['theme', 'Тема', 'цвет кнопок и акцентов Gradient'],
+  ['theme', 'Тема', 'цвет кнопок и акцентов Gradely'],
   ['aura', 'Аура', 'свечение вокруг фигурки'],
   ['skin', 'Карточка', 'вид твоей карточки у друзей'],
-  ['bgpack', 'Фон', 'значки на фоне Gradient']
+  ['bgpack', 'Фон', 'значки на фоне Gradely']
 ];
 const PMG_EQUIP_NAMES = {
-  theme: { default: 'Gradient', mint: 'Мята', sunset: 'Закат', midnight: 'Полночь', aurora: 'Аврора' },
+  theme: { default: 'Gradely', mint: 'Мята', sunset: 'Закат', midnight: 'Полночь', aurora: 'Аврора' },
   skin: { default: 'Обычная', notebook: 'Тетрадь', holo: 'Голограмма' },
   bgpack: { glyphs: 'Учебные значки', space: 'Стикеры', chem: 'Химия', formulas: 'Формулы' }
 };
@@ -25,7 +25,7 @@ function pmgEquipNames(kind) {
   return PMG_EQUIP_NAMES[kind] || {};
 }
 
-// Друзья видят только то, что включено. Шаги и дуэли из Gradient убраны — всегда выключены.
+// Друзья видят только то, что включено. Шаги и дуэли из Gradely убраны — всегда выключены.
 function pmgPrivacyOf(prof) {
   return { ...PMG_PRIVACY_DEFAULT, ...((prof && prof.privacy) || {}), steps: false, duels: false };
 }
@@ -62,7 +62,7 @@ function pmgProfHero() {
   const nick = pmg.nickEdit
     ? '<div class="prof-nick-edit"><input class="in" data-act="nick-edit" maxlength="16" value="' + pmgEsc(prof.nick || '') + '" aria-label="Ник"><button class="btn small primary" data-act="nick-save">Сохранить</button><button class="btn small" data-act="nick-cancel">Отмена</button></div>'
     : '<h2 class="prof-nick">' + pmgEsc(prof.nick || 'Без ника') + '<button class="link sm" data-act="nick-open">изменить</button></h2>';
-  return '<section class="card prof-hero"><div class="prof-fig">' + pmgFigure(me, 140, { fig: eq.body && PMG_FIGS[eq.body] ? eq.body : undefined }) + '</div>' +
+  return '<section class="card prof-hero"><div class="prof-fig">' + pmgAvatar(me, 96) + '</div>' +
     '<div class="prof-main">' + nick + (title ? '<span class="prof-title">' + pmgEsc(title) + '</span>' : '') +
     (G ? '<div class="prof-stats"><span><b>' + G.level.level + '</b>уровень</span><span><b>' + pmgFmtXp(G.xp) + '</b>XP за сезон</span>' +
       '<span><b>' + G.streak.days + '</b>' + pmgPlural(G.streak.days, ['день', 'дня', 'дней']) + ' огонёк</span><span><b>' + have + '</b>из ' + PMG_ACHIEVEMENTS.length + ' достижений</span></div>' : '') +
@@ -72,26 +72,18 @@ function pmgProfHero() {
 // Внешность: фото, поза, цвет, наклейка — по одному разделу за раз.
 function pmgProfLook() {
   const prof = pmgProfile(), eq = pmgEquipped();
-  const part = pmg.lookPart || (prof.photoLocal ? 'pose' : 'photo');
+  const part = pmg.lookPart && PMG_LOOK_PARTS.some(([k]) => k === pmg.lookPart) ? pmg.lookPart : 'photo';
   const me = { id: 'me', nick: prof.nick || 'я', avatar: prof.avatar || 'planet-1', photoUrl: prof.photoLocal || null, equipped: eq };
-  const body = eq.body && PMG_FIGS[eq.body] ? eq.body : pmgFigOf(me);
   let h = '<section class="card prof-look"><div class="seg-ctl mini look-nav">' + PMG_LOOK_PARTS.map(([k, l]) => '<button class="' + (part === k ? 'on' : '') + '" data-act="look-part" data-v="' + k + '">' + l + '</button>').join('') + '</div>';
   if (part === 'photo') {
     h += '<div class="look-photo"><label class="btn primary"><input type="file" accept="image/*" data-act="photo-file" hidden>' + (prof.photoLocal ? 'Выбрать другое фото' : 'Загрузить фото') + '</label>' +
       (prof.photoLocal ? '<button class="btn" data-act="photo-delete">Убрать фото</button>' : '') + '</div>' +
-      '<p class="muted small">Фото станет головой твоей фигурки. Обрежешь его в круг прямо здесь — оригинал никуда не уходит. Видно только участникам твоих групп. Без фото вместо головы будет наклейка.</p>';
-  }
-  if (part === 'pose') {
-    h += '<p class="muted small">Как стоит твоя фигурка на лесенке группы.</p><div class="fig-grid">' + Object.keys(PMG_FIGS).map((id) => '<button class="fig-pick' + (id === body ? ' on' : '') + '" data-act="equip" data-kind="body" data-v="' + id + '" aria-label="' + pmgEsc(PMG_FIGS[id].n) + '"><span class="fig-pick-art">' + pmgFigure(me, 74, { fig: id }) + '</span><small>' + pmgEsc(PMG_FIGS[id].n) + '</small></button>').join('') + '</div>';
-  }
-  if (part === 'pen') {
-    const pen = eq.pen && PMG_PENS[eq.pen] ? eq.pen : '';
-    h += '<p class="muted small">Цвет обводки фигурки — как ручкой в тетради.</p><div class="pen-list">' + Object.entries(PMG_PENS).map(([id, [c, n]]) => '<button class="pen-item' + (id === pen ? ' on' : '') + '" data-act="equip" data-kind="pen" data-v="' + id + '"><i style="--pc:' + c + '"></i>' + pmgEsc(n) + '</button>').join('') + '</div>';
+      '<p class="muted small">Фото станет твоим аватаром в группе. Обрежешь его в круг прямо здесь — оригинал никуда не уходит. Видно только участникам твоих групп. Без фото будет зверёк из вкладки «Аватар».</p>';
   }
   if (part === 'sticker') {
     const av = ['planet-1'].concat(Array.from({ length: 23 }, (_, i) => 'planet-' + (i + 2)));
-    h += '<p class="muted small">' + (prof.photoLocal ? 'Наклейка видна вместо фото, если фото убрать, и в списках рядом с ником.' : 'Голова фигурки и значок рядом с ником.') + '</p><div class="av-grid">' +
-      av.map((a) => '<button class="av-pick' + (me.avatar === a ? ' on' : '') + '" data-act="avatar" data-v="' + a + '" aria-label="Наклейка">' + pmgAvatarSvg(a, 40) + '</button>').join('') + '</div>';
+    h += '<p class="muted small">' + (prof.photoLocal ? 'Зверёк будет вместо фото, если фото убрать.' : 'Твой аватар в группе и рядом с ником.') + '</p><div class="av-grid">' +
+      av.slice(0, PMG_AV_COUNT).map((a) => '<button class="av-pick' + (pmgAvatarIndex(me.avatar) === pmgAvatarIndex(a) ? ' on' : '') + '" data-act="avatar" data-v="' + a + '" aria-label="Аватар">' + pmgAvatarSvg(a, 52) + '</button>').join('') + '</div>';
   }
   return h + '</section>';
 }

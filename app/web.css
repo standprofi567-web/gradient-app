@@ -1,4 +1,4 @@
-/* Gradient на телефоне: шапка, нижнее меню, карточки под палец. Токены цветов — из ui.css. */
+/* Gradely на телефоне: шапка, нижнее меню, карточки под палец. Токены цветов — из ui.css. */
 html { -webkit-text-size-adjust: 100%; }
 body.pmg-page.web-body { min-height: 100dvh; -webkit-tap-highlight-color: transparent; overscroll-behavior-y: none; }
 body.pmg-page.web-body::before {
@@ -231,3 +231,44 @@ button.f-row { width: 100%; font: inherit; color: inherit; text-align: left; cur
 /* Полоска уровня во второй строке шапки */
 .w-head { flex-wrap: wrap; }
 .w-head .xpline { flex: 1 1 100%; margin: 6px 0 0; padding: 0; cursor: pointer; }
+
+/* ================= Gradely на телефоне: в духе iOS ================= */
+body.pmg-page.web-body { background: var(--page-bg); }
+body.pmg-page.web-body::before { display: none; }
+/* Матовая шапка и плавающее стеклянное меню. Размытие оставляем даже в лёгком режиме:
+   это всего две маленькие панели, памяти они почти не берут, а вид — как в iOS. */
+.pmg-page .panel.web > .w-head { background: color-mix(in srgb, var(--page-bg) 78%, transparent) !important; -webkit-backdrop-filter: saturate(180%) blur(20px) !important; backdrop-filter: saturate(180%) blur(20px) !important; border-bottom: .5px solid var(--hair); }
+.pmg-page .panel.web > .w-nav { left: 50%; bottom: calc(10px + env(safe-area-inset-bottom)); width: min(740px, calc(100% - 20px)); padding: 6px 4px; border-radius: 26px; border: .5px solid var(--hair);
+  background: color-mix(in srgb, var(--menu-bg) 74%, transparent) !important; -webkit-backdrop-filter: saturate(180%) blur(22px) !important; backdrop-filter: saturate(180%) blur(22px) !important;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, .12); }
+.w-tab { font: 500 10.5px/1.2 var(--sans); }
+.w-tab.on::before { display: none; }
+.w-tab.on svg { transform: scale(1.1); }
+.w-main { padding-bottom: calc(108px + env(safe-area-inset-bottom)); }
+.w-fab { bottom: calc(92px + env(safe-area-inset-bottom)); border-radius: 50%; background: var(--accent); box-shadow: 0 8px 24px color-mix(in srgb, var(--accent) 40%, transparent); }
+.w-head .brand-mark { border-radius: 9px; }
+
+/* Крупные заголовки, как в приложениях iPhone */
+.panel.web h1, .w-hello h1 { font: 700 30px/1.15 var(--display); letter-spacing: -.025em; }
+.w-hello .muted { font-size: 14px; }
+.w-group h2 { font: 600 13px/1.3 var(--sans); color: var(--soft); text-transform: uppercase; letter-spacing: .03em; margin: 0 6px 8px; }
+
+/* Строки без рамок, с мягкой тенью */
+.w-hw, .w-subj, .f-row { border: 0 !important; background: var(--glass-3); box-shadow: var(--card-shadow); }
+.w-hw { border-radius: 14px; }
+.w-subj.open { box-shadow: 0 0 0 2px var(--accent-soft), var(--card-shadow); }
+.f-row.me { background: color-mix(in srgb, var(--accent) 7%, var(--glass-3)); }
+.f-row.on { box-shadow: 0 0 0 2px var(--accent), var(--card-shadow); }
+.w-chipbtn { border: 0; background: var(--glass-2); color: var(--ink-2); font-weight: 500; }
+.w-chipbtn.on { background: var(--accent); color: #fff; }
+.w-subj-avg, .w-subj-name small i { font-family: var(--rounded); }
+.w-pair h1 { background: none !important; -webkit-background-clip: border-box !important; background-clip: border-box !important; color: var(--ink) !important; }
+
+/* Кольца на главной */
+.w-rings { display: flex; align-items: center; gap: 16px; }
+.w-rings .rings { flex: none; }
+.w-rings b.lv { display: block; font: 700 22px/1.15 var(--rounded); color: var(--ink); }
+.w-rings .w-rg-line { display: flex; align-items: center; gap: 6px; color: var(--soft); font-size: 13px; margin-top: 3px; }
+/* Задания внутри карточки — ровный список с тонкими разделителями, а не карточки в карточке */
+.card .w-hw { box-shadow: none !important; background: transparent; border-radius: 0; margin: 0; padding: 12px 2px; border-top: .5px solid var(--hair) !important; }
+.card .card-head + .w-hw { border-top: 0 !important; }

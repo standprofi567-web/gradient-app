@@ -140,7 +140,7 @@ async function pmgDrawReport(r) {
   const P = 64;
   pmgRRect(ctx, P, 56, 60, 60, 17, 'rgba(255,255,255,.18)');
   pmgLogoMark(ctx, P + 8, 64, 44);
-  pmgText(ctx, 'Gradient', P + 78, 98, 28, 700, '#fff');
+  pmgText(ctx, 'Gradely', P + 78, 98, 28, 700, '#fff');
   const pname = r.kind === 'year' ? 'учебного года' : r.period.name.replace(/^(\S+)\s+четверть$/i, '$1 четверти');
   const y0 = r.period.from.getMonth() >= 8 ? r.period.from.getFullYear() : r.period.from.getFullYear() - 1;
   pmgText(ctx, 'Итоги', P, 200, 64, 700, '#fff');
@@ -182,7 +182,7 @@ async function pmgDrawReport(r) {
     pmgWrap(ctx, 'По сравнению с ' + r.prevYear + '/' + String(r.prevYear + 1).slice(2) + ': ' + (parts.length ? parts.join(', ') + ', остальные так же' : 'всё на том же уровне'), P, fy + 130, LW - P * 2, 21, 400, 'rgba(255,255,255,.9)', 28);
   }
   const now = new Date();
-  pmgText(ctx, 'Сформировано в Gradient ' + now.getDate() + ' ' + PMG_MONTHS[now.getMonth()] + ' ' + now.getFullYear(), P, H - 66, 17, 400, 'rgba(255,255,255,.8)');
+  pmgText(ctx, 'Сформировано в Gradely ' + now.getDate() + ' ' + PMG_MONTHS[now.getMonth()] + ' ' + now.getFullYear(), P, H - 66, 17, 400, 'rgba(255,255,255,.8)');
   pmgText(ctx, 'по данным Электронного дневника СПб', P, H - 42, 17, 400, 'rgba(255,255,255,.8)');
 
   // ---------- Правая часть ----------
@@ -299,7 +299,7 @@ function pmgCloseReport() {
 
 function pmgReportFileName() {
   const r = pmg.reportKind === 'year' ? 'год' : (pmgPickPeriod(pmgPeriods(), new Date()) || { name: 'четверть' }).name.replace(/\s+/g, '-');
-  return 'Gradient-итоги-' + r + '-' + pmgIsoDate(new Date()) + '.png';
+  return 'Gradely-итоги-' + r + '-' + pmgIsoDate(new Date()) + '.png';
 }
 
 function pmgSaveReport() {

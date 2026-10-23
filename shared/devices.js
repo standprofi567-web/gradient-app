@@ -42,7 +42,7 @@ function pmgDevicesBlock() {
     const extra = me ? '<span class="dev-me">это устройство</span>'
       : pmg.confirm === 'rev:' + d.id ? '<button class="btn small danger" data-act="dev-revoke" data-v="' + pmgEsc(d.id) + '">Точно отключить?</button>'
       : '<button class="btn small" data-act="dev-revoke" data-v="' + pmgEsc(d.id) + '">Отключить</button>';
-    h += row(isPhone ? PMG_DEV_ICON.phone : PMG_DEV_ICON.pc, pmgEsc(d.kind === 'web' ? 'Приложение Gradient' : 'Расширение Gradient'),
+    h += row(isPhone ? PMG_DEV_ICON.phone : PMG_DEV_ICON.pc, pmgEsc(d.kind === 'web' ? 'Приложение Gradely' : 'Расширение Gradely'),
       pmgEsc(d.platform || '') + ' · ' + (me ? 'сейчас' : 'был ' + pmgTimeAgo(d.last_seen)), extra);
   });
   if (!list.length) h += '<li class="dev empty muted">Пока ни одного устройства. Подключи телефон — и он появится здесь.</li>';
@@ -57,8 +57,8 @@ function pmgDevicesBlock() {
 // ---------- Подключить телефон (расширение) ----------
 function pmgPairCard(promo) {
   const pc = pmg.pairCode;
-  let h = '<section class="card hl-dev' + (promo ? ' promo' : '') + '"><div class="card-head"><h3>' + (promo ? 'Gradient на телефоне' : 'Подключить телефон') + '</h3></div>';
-  if (promo) h += '<p class="muted">Приложение на телефоне: оценки, домашка (можно добавлять свою, с фото доски), отчёты и Gradient Pass с огоньком и заданиями. Работает на iPhone и Android. Оценки будут храниться на сервере в закрытом разделе — видишь их только ты.</p>';
+  let h = '<section class="card hl-dev' + (promo ? ' promo' : '') + '"><div class="card-head"><h3>' + (promo ? 'Gradely на телефоне' : 'Подключить телефон') + '</h3></div>';
+  if (promo) h += '<p class="muted">Приложение на телефоне: оценки, домашка (можно добавлять свою, с фото доски), отчёты и Gradely Pass с огоньком и заданиями. Работает на iPhone и Android. Оценки будут храниться на сервере в закрытом разделе — видишь их только ты.</p>';
   if (pc && pc.expires > Date.now()) {
     const link = PMG_SITE + '#pair=' + pc.raw;
     let qr = '';

@@ -1,4 +1,4 @@
-// Связь с сервером Gradient (Supabase) через обычный fetch, без сторонних библиотек.
+// Связь с сервером Gradely (Supabase) через обычный fetch, без сторонних библиотек.
 // Работает в фоновом скрипте; страницы обращаются к нему сообщениями.
 
 const PMG_AUTH_KEY = 'pmg_auth';
@@ -11,7 +11,7 @@ async function pmgFetchT(url, init, ms) {
   try { return await fetch(url, { ...init, signal: ctl.signal }); } finally { clearTimeout(t); }
 }
 
-// Дорога до сервера Gradient: сначала напрямую; если не вышло (нет VPN, обрыв, долго молчит) —
+// Дорога до сервера Gradely: сначала напрямую; если не вышло (нет VPN, обрыв, долго молчит) —
 // через мост в России, и следующие полчаса сразу через него.
 const pmgRoute = { via: null, until: 0, fails: 0 };
 function pmgSbBase() { return pmgRoute.via === 'bridge' && Date.now() < pmgRoute.until ? PMG_BRIDGE_URL + '/sb' : PMG_SB_URL; }

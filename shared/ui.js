@@ -8,7 +8,7 @@ const PMG_WEEKDAYS = ['воскресенье', 'понедельник', 'вт�
 const PMG_WD_SHORT = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
 const PMG_MONTHS = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
 const PMG_DEFAULT_SETTINGS = { threshold: 0.55, studentId: null, hwMode: 'assigned', notify: true, keepAlive: true, autoTab: true, theme: 'auto', bg: 'glyphs', fx: 'lite', v: 2 };
-const PMG_LOGO = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M16.95 7.05A7 7 0 1 0 19 12h-6" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><circle cx="16.95" cy="7.05" r="1.9" fill="currentColor"/></svg>';
+const PMG_LOGO = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="11.3" cy="10.3" r="4.1"/><path d="M15.4 6.4v9.2c0 3.6-2.4 5-4.6 5-1.6 0-2.8-.6-3.5-1.7"/></g></svg>';
 // Основные вкладки всегда на виду, редкие — под кнопкой «Ещё».
 const PMG_TABS = [['overview', 'Сводка'], ['homework', 'Домашка'], ['subjects', 'Предметы'], ['calendar', 'Календарь'], ['pass', 'Pass'], ['friends', 'Друзья'], ['profile', 'Профиль']];
 const PMG_TABS_MORE = [['absences', 'Пропуски'], ['finals', 'Итоги'], ['devices', 'Устройства']];
@@ -205,11 +205,11 @@ function pmgTabsNav() {
 function pmgUpdateBar() {
   const u = pmg.update;
   if (!u || !u.version) return '';
-  return '<div class="upd-bar' + (pmg.updOpen ? ' open' : '') + '"><div class="upd-row"><span class="upd-dot"></span><b>Вышел Gradient ' + pmgEsc(u.version) + '</b>' +
+  return '<div class="upd-bar' + (pmg.updOpen ? ' open' : '') + '"><div class="upd-row"><span class="upd-dot"></span><b>Вышел Gradely ' + pmgEsc(u.version) + '</b>' +
     (u.notes ? '<span class="upd-notes">' + pmgEsc(u.notes) + '</span>' : '') +
     '<button class="btn small primary" data-act="upd-get">Обновить</button></div>' +
-    (pmg.updOpen ? '<ol class="upd-steps"><li>Архив уже скачивается. Распакуй его <b>в ту же папку</b>, где лежит Gradient, с заменой файлов.</li>' +
-      '<li>Нажми кнопку ниже — Gradient перезапустится уже новым.</li></ol>' +
+    (pmg.updOpen ? '<ol class="upd-steps"><li>Архив уже скачивается. Распакуй его <b>в ту же папку</b>, где лежит Gradely, с заменой файлов.</li>' +
+      '<li>Нажми кнопку ниже — Gradely перезапустится уже новым.</li></ol>' +
       '<div class="upd-row"><button class="btn small primary" data-act="upd-reload">Я распаковал — перезапустить</button><button class="btn small" data-act="upd-get">Скачать ещё раз</button></div>' : '') + '</div>';
 }
 
@@ -232,7 +232,7 @@ function pmgEmptyState() {
   if (pmg.loading) return '<div class="loader"><span></span><span></span><span></span></div><p>Собираю оценки и домашку…</p>';
   const st = pmg.status;
   if (st && !st.ok && st.error === 'auth') {
-    return '<p class="lead">Нужно войти в дневник</p><p>Открой электронный дневник и войди. Дальше Gradient будет обновляться сам, даже когда сайт закрыт.</p>' +
+    return '<p class="lead">Нужно войти в дневник</p><p>Открой электронный дневник и войди. Дальше Gradely будет обновляться сам, даже когда сайт закрыт.</p>' +
       '<div class="row-btns">' + (pmg.mode === 'drawer' ? '<button class="btn primary" data-act="page-reload">Перезагрузить страницу дневника</button>' : '<a class="btn primary" href="' + PMG_ORIGIN + '/" target="_blank" rel="noopener">Открыть дневник</a>') + '<button class="btn" data-act="refresh">Проверить ещё раз</button></div>';
   }
   if (st && !st.ok) return '<p class="err">' + pmgEsc(st.error || 'Не получилось загрузить данные.') + '</p><div class="row-btns"><button class="btn" data-act="refresh">Попробовать ещё раз</button>' + (pmg.mode === 'drawer' ? '<button class="btn" data-act="page-reload">Перезагрузить страницу дневника</button>' : '') + '</div>';
@@ -273,7 +273,7 @@ function pmgHeader(period) {
     tools += '<button class="icon-btn" data-act="open-app" data-tip="Открыть в отдельной вкладке" aria-label="Открыть в отдельной вкладке">' + pmgIcon('expand') + '</button>' +
       '<button class="icon-btn" data-act="close" aria-label="Закрыть панель">' + pmgIcon('close') + '</button>';
   }
-  return '<header class="head"><div class="brand"><span class="brand-mark">' + PMG_LOGO + '</span><div class="brand-text"><div class="brand-name">Gradient</div>' +
+  return '<header class="head"><div class="brand"><span class="brand-mark">' + PMG_LOGO + '</span><div class="brand-text"><div class="brand-name">Gradely</div>' +
     '<div class="who">' + who + '<span class="status' + (st && !st.ok ? ' bad' : '') + '">' + pmgEsc(pmgStatusText()) + '</span></div></div></div>' +
     '<div class="head-tools">' + tools + '</div></header>';
 }
@@ -364,7 +364,7 @@ function pmgSettingsBlock() {
     '<p class="muted">Так же и для других оценок: при 4,55 четвёрка выходит от 3,55, тройка от 2,55.</p>' +
     '<div class="seg-ctl" role="group" aria-label="Уведомления"><span>Уведомлять о новых оценках и домашке</span>' +
     [[true, 'Да'], [false, 'Нет']].map(([v, l]) => '<button class="' + (pmg.settings.notify === v ? 'on' : '') + '" data-act="notify" data-v="' + v + '">' + l + '</button>').join('') + '</div>' +
-    '<p class="muted">Gradient сам проверяет дневник каждые 20 минут, пока открыт браузер.</p>' +
+    '<p class="muted">Gradely сам проверяет дневник каждые 20 минут, пока открыт браузер.</p>' +
     '<div class="seg-ctl" role="group" aria-label="Напоминание"><span>Вечером напоминать про домашку на завтра</span>' +
     [[true, 'Да'], [false, 'Нет']].map(([v, l]) => '<button class="' + ((pmg.settings.remind !== false) === v ? 'on' : '') + '" data-act="remind" data-v="' + v + '">' + l + '</button>').join('') + '</div>' +
     '<p class="muted">В 19:00 на телефон придёт «на завтра осталось 3 задания», если что-то не отмечено. Нужны включённые уведомления в приложении на телефоне.</p>' +
@@ -372,15 +372,15 @@ function pmgSettingsBlock() {
     [['auto', 'Как в системе'], ['light', 'Светлая'], ['dark', 'Тёмная']].map(([v, l]) => '<button class="' + ((pmg.settings.theme || 'auto') === v ? 'on' : '') + '" data-act="theme" data-v="' + v + '">' + l + '</button>').join('') + '</div>' +
     '<div class="seg-ctl" role="group" aria-label="Эффекты"><span>Эффекты</span>' +
     [['lite', 'Лёгкие'], ['full', 'Все']].map(([v, l]) => '<button class="' + ((pmg.settings.fx || 'lite') === v ? 'on' : '') + '" data-act="fx" data-v="' + v + '">' + l + '</button>').join('') + '</div>' +
-    '<p class="muted">«Лёгкие» — без размытия, плавающих значков и бликов за курсором. Gradient так занимает в разы меньше памяти и не греет компьютер.</p>' +
+    '<p class="muted">«Лёгкие» — без размытия, плавающих значков и бликов за курсором. Gradely так занимает в разы меньше памяти и не греет компьютер.</p>' +
     '<div class="seg-ctl" role="group" aria-label="Фон"><span>Фон</span>' +
     [['glyphs', 'Учебные значки'], ['none', 'Без фона']].map(([v, l]) => '<button class="' + ((pmg.settings.bg || 'glyphs') === v ? 'on' : '') + '" data-act="bg" data-v="' + v + '">' + l + '</button>').join('') + '</div>' +
     '<div class="seg-ctl" role="group" aria-label="Не выходить из дневника"><span>Не выходить из дневника</span>' +
     [[true, 'Да'], [false, 'Нет']].map(([v, l]) => '<button class="' + (pmg.settings.keepAlive === v ? 'on' : '') + '" data-act="keepalive" data-v="' + v + '">' + l + '</button>').join('') + '</div>' +
-    '<p class="muted">Каждые 4 минуты Gradient тихо обращается к дневнику, чтобы вход не сбрасывался из-за бездействия.</p>' +
+    '<p class="muted">Каждые 4 минуты Gradely тихо обращается к дневнику, чтобы вход не сбрасывался из-за бездействия.</p>' +
     '<div class="seg-ctl" role="group" aria-label="Сам открывать дневник"><span>Сам открывать дневник</span>' +
     [[true, 'Да'], [false, 'Нет']].map(([v, l]) => '<button class="' + ((pmg.settings.autoTab !== false) === v ? 'on' : '') + '" data-act="autotab" data-v="' + v + '">' + l + '</button>').join('') + '</div>' +
-    '<p class="muted">Если данные не пришли, Gradient сам откроет дневник в фоновой вкладке, обновит его и закроет, когда получит оценки.</p></section>';
+    '<p class="muted">Если данные не пришли, Gradely сам откроет дневник в фоновой вкладке, обновит его и закроет, когда получит оценки.</p></section>';
 }
 
 // ---- Календарь оценок ----
@@ -1333,8 +1333,8 @@ async function pmgMountDrawer() {
   pmg.root = sh;
   pmg.mode = 'drawer';
   sh.innerHTML = '<link rel="stylesheet" href="' + chrome.runtime.getURL('ui.css') + '"><link rel="stylesheet" href="' + chrome.runtime.getURL('pass.css') + '">' +
-    '<button class="launcher" data-act="launch" aria-expanded="false" aria-controls="pmg-panel"><span class="launcher-mark" aria-hidden="true">' + PMG_LOGO + '</span><span class="launcher-text">Gradient</span><span class="launcher-avg"></span><span class="launcher-badge" hidden></span></button>' +
-    '<aside class="panel drawer" id="pmg-panel" aria-label="Gradient" hidden></aside><div class="tip" role="tooltip" hidden></div>';
+    '<button class="launcher" data-act="launch" aria-expanded="false" aria-controls="pmg-panel"><span class="launcher-mark" aria-hidden="true">' + PMG_LOGO + '</span><span class="launcher-text">Gradely</span><span class="launcher-avg"></span><span class="launcher-badge" hidden></span></button>' +
+    '<aside class="panel drawer" id="pmg-panel" aria-label="Gradely" hidden></aside><div class="tip" role="tooltip" hidden></div>';
   pmgBind();
   const s = await pmgLoadState();
   pmgLauncherUpdate();
@@ -1355,7 +1355,7 @@ async function pmgMountPage(container) {
   pmg.mode = 'page';
   pmg.open = true;
   pmg.hwAnimate = true;
-  container.innerHTML = '<div class="panel page" aria-label="Gradient"></div><div class="tip" role="tooltip" hidden></div>';
+  container.innerHTML = '<div class="panel page" aria-label="Gradely"></div><div class="tip" role="tooltip" hidden></div>';
   const fromHash = location.hash.slice(1);
   if (PMG_TABS_ALL.some(([k]) => k === fromHash)) pmg.tab = fromHash;
   if (fromHash === 'report') { pmg.tab = 'finals'; pmg.openReportOnLoad = true; }

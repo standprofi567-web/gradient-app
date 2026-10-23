@@ -1,4 +1,4 @@
-// Gradient Pass: сезоны, уровни, награды, достижения и задания. Только данные и чистые функции.
+// Gradely Pass: сезоны, уровни, награды, достижения и задания. Только данные и чистые функции.
 
 const PMG_SEASONS = [
   { id: 's0-test', name: 'Тестовый', theme: 'sticker', starts: '2026-10-14', ends: '2026-11-03', scale: 1, test: true,
@@ -83,7 +83,7 @@ const PMG_REWARDS = {
   43: [{ kind: 'skin', id: 'holo', name: 'Скин карточки «Голограмма»' }],
   45: [{ kind: 'theme', id: 'aurora', name: 'Тема «Аврора»' }],
   48: [{ kind: 'bgpack', id: 'formulas', name: 'Пак фона «Формулы»' }],
-  50: [{ kind: 'frame', id: 'gradient', name: 'Рамка «Gradient»' }, { kind: 'title', id: 'legend', name: 'Титул «Легенда сезона»' }, { kind: 'badge', id: 'b50', name: 'Градиентный значок сезона' }, { kind: 'aura', id: 'season', name: 'Сезонная аура' }]
+  50: [{ kind: 'frame', id: 'gradient', name: 'Рамка «Gradely»' }, { kind: 'title', id: 'legend', name: 'Титул «Легенда сезона»' }, { kind: 'badge', id: 'b50', name: 'Градиентный значок сезона' }, { kind: 'aura', id: 'season', name: 'Сезонная аура' }]
 };
 
 // 29 наклеек альбома «Космос» — на всех уровнях без крупной награды.
@@ -118,7 +118,7 @@ function pmgUnlocked(level) {
   return out;
 }
 
-const PMG_FRAME_NAMES = { none: 'Без рамки', novice: 'Новичок', bronze: 'Бронза', silver: 'Серебро', wave: 'Волна', gold: 'Золото', platinum: 'Платина', gradient: 'Gradient' };
+const PMG_FRAME_NAMES = { none: 'Без рамки', novice: 'Новичок', bronze: 'Бронза', silver: 'Серебро', wave: 'Волна', gold: 'Золото', platinum: 'Платина', gradient: 'Gradely' };
 const PMG_TITLE_NAMES = { none: 'Без титула', in: 'В деле', stubborn: 'Упорный', unstoppable: 'Неудержимый', legend: 'Легенда сезона' };
 const PMG_REACTIONS = { fire: 'Огонь', power: 'Сила', wow: 'Вау', clap: 'Хлопки', rocket: 'Ракета', crown: 'Корона' };
 
@@ -164,7 +164,7 @@ const PMG_DAILY = {
 };
 const PMG_WEEKLY = {
   easy: [
-    { id: 'w_login4', text: 'Заходи в Gradient 4 учебных дня из 5', xp: 200, goal: 4 },
+    { id: 'w_login4', text: 'Заходи в Gradely 4 учебных дня из 5', xp: 200, goal: 4 },
     { id: 'w_8daily', text: 'Выполни 8 заданий дня', xp: 200, goal: 8 }
   ],
   mid: [

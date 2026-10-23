@@ -1,5 +1,5 @@
 #!/bin/bash
-# Выпуск новой версии Gradient одной командой:
+# Выпуск новой версии Gradely одной командой:
 #   bash tools/release.sh 3.8.1            — собрать всё и отправить сайт на GitHub
 #   bash tools/release.sh 3.8.1 --no-push  — только собрать и закоммитить (без отправки)
 #
@@ -17,7 +17,7 @@ fi
 
 SITE="$(cd "$(dirname "$0")/.." && pwd)"
 EXT="$(cd "$SITE/../pomogator" && pwd)"
-BOT=(-c user.name="Gradient Bot" -c user.email="standprofi567-web@users.noreply.github.com")
+BOT=(-c user.name="Gradely Bot" -c user.email="standprofi567-web@users.noreply.github.com")
 
 echo "1/5  Версия $VER в расширении"
 python3 -I - "$EXT/manifest.json" "$VER" <<'PY'
@@ -30,19 +30,19 @@ json.loads(s)
 open(p, 'w', encoding='utf-8').write(s)
 PY
 
-echo "2/5  Архив расширения ext/gradient-$VER.zip"
+echo "2/5  Архив расширения ext/gradely-$VER.zip"
 mkdir -p "$SITE/ext"
-rm -f "$SITE"/ext/gradient-*.zip
-(cd "$EXT" && zip -qr -X "$SITE/ext/gradient-$VER.zip" . -x '.git/*' -x '.gitignore' -x '*.DS_Store')
+rm -f "$SITE"/ext/gradient-*.zip "$SITE"/ext/gradely-*.zip
+(cd "$EXT" && zip -qr -X "$SITE/ext/gradely-$VER.zip" . -x '.git/*' -x '.gitignore' -x '*.DS_Store')
 
 echo "3/5  Сборка сайта"
 SRC="$EXT" bash "$SITE/tools/build.sh"
 
 echo "4/5  Коммиты"
 git -C "$EXT" add -A
-git -C "$EXT" "${BOT[@]}" commit -qm "Gradient $VER" || echo "     (в расширении нечего коммитить)"
+git -C "$EXT" "${BOT[@]}" commit -qm "Gradely $VER" || echo "     (в расширении нечего коммитить)"
 git -C "$SITE" add -A
-git -C "$SITE" "${BOT[@]}" commit -qm "Gradient $VER" || echo "     (на сайте нечего коммитить)"
+git -C "$SITE" "${BOT[@]}" commit -qm "Gradely $VER" || echo "     (на сайте нечего коммитить)"
 
 if [ "$PUSH" = 0 ]; then
   echo "Готово без отправки. Чтобы выложить: bash tools/release.sh $VER"; exit 0
@@ -63,5 +63,5 @@ GH_TOKEN="$GH_TOKEN" GIT_ASKPASS="$ASK" GIT_TERMINAL_PROMPT=0 \
   git -C "$SITE" -c credential.helper= push https://github.com/standprofi567-web/gradient-app.git main
 
 echo
-echo "Готово ✓  Gradient $VER на GitHub, сайт обновится за пару минут."
+echo "Готово ✓  Gradely $VER на GitHub, сайт обновится за пару минут."
 echo "Теперь напиши Claude: «выпустил $VER» — он пропишет версию, и друзьям придёт обновление."

@@ -1,4 +1,4 @@
-// Gradient на телефоне: главное из расширения — оценки, домашка (в том числе своя, с фото), отчёты и Gradient Pass.
+// Gradely на телефоне: главное из расширения — оценки, домашка (в том числе своя, с фото), отчёты и Gradely Pass.
 // Данные приходят с сервера: снимок дневника присылает расширение. Очки Pass телефон считает тем же кодом, что и расширение.
 
 const PMG_WEB_TABS = [
@@ -218,9 +218,9 @@ function pmgWebHeader() {
   const t = pmg.settings.theme || 'auto';
   const when = st && st.at ? (() => { const d = new Date(st.at); const today = pmgToday(); const dd = new Date(d); dd.setHours(0, 0, 0, 0); return (dd.getTime() === today.getTime() ? 'сегодня' : pmgAgo(d)) + ' в ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); })() : '';
   const stale = st && st.at && Date.now() - st.at > 26 * 3600e3;
-  return '<header class="w-head"><div class="brand"><span class="brand-mark">' + PMG_LOGO + '</span><div><span class="brand-name">Gradient</span>' +
+  return '<header class="w-head"><div class="brand"><span class="brand-mark">' + PMG_LOGO + '</span><div><span class="brand-name">Gradely</span>' +
     '<div class="who">' + (web.syncing ? 'обновляю…' : web.syncErr ? '<span class="err">нет связи</span>' : when ? '<span class="' + (stale ? 'stale' : '') + '">дневник ' + when + '</span>' : '') + '</div></div></div>' +
-    '<div class="head-tools"><button class="icon-btn' + (web.tab === 'me' ? ' on' : '') + '" data-act="w-tab" data-v="me" aria-label="Настройки"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.9"/><path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M5.5 18.5l1.7-1.7M16.8 7.2l1.7-1.7" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg></button><button class="icon-btn" data-act="w-theme" aria-label="Тема">' + pmgIcon(t === 'dark' ? 'moon' : t === 'light' ? 'sun' : 'auto') + '</button>' +
+    '<div class="head-tools"><button class="icon-btn' + (web.tab === 'me' ? ' on' : '') + '" data-act="w-tab" data-v="me" aria-label="Настройки"><svg viewBox="0 0 24 24" width="21" height="21" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></button><button class="icon-btn" data-act="w-theme" aria-label="Тема">' + pmgIcon(t === 'dark' ? 'moon' : t === 'light' ? 'sun' : 'auto') + '</button>' +
     '<button class="icon-btn' + (web.syncing ? ' spin' : '') + '" data-act="w-sync" aria-label="Обновить">' + pmgIcon('refresh') + '</button></div>' +
     // Полоска уровня в закреплённой шапке: видна на любой вкладке, сюда прилетают «+XP»
     pmgXpLine() + '</header>';
@@ -232,7 +232,7 @@ function pmgWebNav() {
 
 function pmgWebNoData() {
   return '<section class="card w-empty"><div class="hl-empty-art">' + PMG_LOGO.replace('width="18" height="18"', 'width="44" height="44"') + '</div><h2>' + (web.syncing ? 'Загружаю дневник…' : 'Дневника пока нет') + '</h2>' +
-    '<p class="muted">Войди в дневник прямо отсюда — через Госуслуги. Или открой дневник на компьютере с расширением Gradient: оценки придут сами.</p>' +
+    '<p class="muted">Войди в дневник прямо отсюда — через Госуслуги. Или открой дневник на компьютере с расширением Gradely: оценки придут сами.</p>' +
     '<button class="btn" data-act="w-sync">Проверить ещё раз</button></section>' + pmgBridgeCard({ alert: true });
 }
 
@@ -246,15 +246,15 @@ function pmgWebNeedLogin() {
 // ---------- Вход ----------
 function pmgPairScreen() {
   return '<div class="w-pair"><div class="w-pair-logo"><span class="brand-mark big">' + PMG_LOGO.replace('width="18" height="18"', 'width="34" height="34"') + '</span></div>' +
-    '<h1>Gradient</h1><p class="muted">Оценки, домашка, отчёты и Gradient Pass — на телефоне.</p>' +
-    '<section class="card"><h3>Подключи телефон</h3><ol class="w-steps"><li>На компьютере открой Gradient → вкладка <b>«Устройства»</b>.</li><li>Нажми <b>«Подключить телефон»</b>.</li><li>Наведи камеру телефона на QR-код — или введи код ниже.</li></ol>' +
+    '<h1>Gradely</h1><p class="muted">Оценки, домашка, отчёты и Gradely Pass — на телефоне.</p>' +
+    '<section class="card"><h3>Подключи телефон</h3><ol class="w-steps"><li>На компьютере открой Gradely → вкладка <b>«Устройства»</b>.</li><li>Нажми <b>«Подключить телефон»</b>.</li><li>Наведи камеру телефона на QR-код — или введи код ниже.</li></ol>' +
     '<input class="in w-code" data-act="w-code" inputmode="text" autocapitalize="characters" autocomplete="one-time-code" maxlength="9" placeholder="ABCD-1234">' +
     (web.pairErr ? '<p class="err">' + pmgEsc(web.pairErr) + '</p>' : '') +
     '<button class="btn primary big" data-act="w-claim"' + (web.pairing ? ' disabled' : '') + '>' + (web.pairing ? 'Подключаю…' : 'Подключить') + '</button></section>' +
     // Вход с телефона без компьютера работает только через сервер-мост — показываем, когда он включён
-    (PMG_BRIDGE_ON ? '<section class="card"><h3>Нет компьютера?</h3><p class="muted">Начни прямо на телефоне: войдёшь в дневник через Госуслуги, а оценки будет забирать сервер Gradient.</p>' +
+    (PMG_BRIDGE_ON ? '<section class="card"><h3>Нет компьютера?</h3><p class="muted">Начни прямо на телефоне: войдёшь в дневник через Госуслуги, а оценки будет забирать сервер Gradely.</p>' +
       '<button class="btn big" data-act="w-solo"' + (web.pairing ? ' disabled' : '') + '>Начать без компьютера</button></section>' : '') +
-    '<p class="muted small w-foot">Пароль не нужен: телефон получает доступ только к твоему аккаунту Gradient. Выйти можно в настройках (шестерёнка сверху).</p></div>';
+    '<p class="muted small w-foot">Пароль не нужен: телефон получает доступ только к твоему аккаунту Gradely. Выйти можно в настройках (шестерёнка сверху).</p></div>';
 }
 
 // ---------- Главная ----------
@@ -265,7 +265,17 @@ function pmgWebHome() {
   const today = pmgToday(), tom = new Date(today.getTime() + PMG_DAY);
   const items = pmgHomework();
   const next = (() => { for (let i = 1; i <= 7; i++) { const d = new Date(today.getTime() + i * PMG_DAY); const list = items.filter((x) => x.due && x.due.getTime() === d.getTime()); if (list.length) return { d, list }; } return null; })();
-  let out = '<div class="w-hello"><h1>' + hi + (name ? ', ' + pmgEsc(name) : '') + '</h1><p class="muted">' + pmgHumanDay(today) + '</p></div>';
+  let out = '<div class="w-hello"><p class="muted">' + pmgHumanDay(today) + '</p><h1>' + hi + (name ? ', ' + pmgEsc(name) : '') + '</h1></div>';
+  // Кольца, как в «Фитнесе»: уровень, задания дня, домашка на завтра
+  const G = pmg.game && pmg.game.view;
+  if (G) {
+    const qd = (G.quests.today || []).filter((q) => q.done).length, qn = (G.quests.today || []).length || 3;
+    const nx = pmgNextDayTodo(items), hd = nx.items.filter((i) => i.done).length;
+    out += '<button class="card w-rings" data-act="w-tab" data-v="pass" style="width:100%;text-align:left;font:inherit;color:inherit;border:0">' +
+      pmgRings([{ frac: G.level.need ? G.level.into / G.level.need : 1, color: 'var(--ring-1)' }, { frac: qd / qn, color: 'var(--ring-2)' }, { frac: nx.items.length ? hd / nx.items.length : 0, color: 'var(--ring-3)' }], 84) +
+      '<div><b class="lv">Уровень ' + G.level.level + '</b><div class="w-rg-line">' + pmgFmtXp(G.weekXp) + ' XP за неделю · задания ' + qd + '/' + qn + '</div>' +
+      '<div class="w-rg-line">' + pmgFlameSvg(G.streak.days, 18) + G.streak.days + ' ' + pmgPlural(G.streak.days, ['день', 'дня', 'дней']) + ' подряд</div></div></button>';
+  }
   out += pmgWebPushCard(false);
   if (pmgWebNeedLogin()) out += pmgBridgeCard({ alert: true });
 
@@ -307,9 +317,9 @@ function pmgWebPushCard(inSettings) {
   if (!inSettings && (p.subscribed || web.pushHide)) return '';
   const bell = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15zM10 20a2 2 0 0 0 4 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>';
   let body, btn = '';
-  if (p.subscribed) { body = 'Включены на этом телефоне. Новые оценки и домашка придут сюда, пока Gradient работает на компьютере.'; btn = '<button class="btn small" data-act="w-push-test">Проверить</button><button class="btn small ghost" data-act="w-push-off">Выключить</button>'; }
-  else if (p.ios && !p.standalone) body = 'На iPhone уведомления работают, только если Gradient добавлен на экран «Домой»: нажми «Поделиться» → «На экран „Домой“» и открой его оттуда.';
-  else if (!p.supported) body = 'Этот браузер не умеет присылать уведомления. Открой Gradient в Safari (iPhone) или Chrome (Android).';
+  if (p.subscribed) { body = 'Включены на этом телефоне. Новые оценки и домашка придут сюда, пока Gradely работает на компьютере.'; btn = '<button class="btn small" data-act="w-push-test">Проверить</button><button class="btn small ghost" data-act="w-push-off">Выключить</button>'; }
+  else if (p.ios && !p.standalone) body = 'На iPhone уведомления работают, только если Gradely добавлен на экран «Домой»: нажми «Поделиться» → «На экран „Домой“» и открой его оттуда.';
+  else if (!p.supported) body = 'Этот браузер не умеет присылать уведомления. Открой Gradely в Safari (iPhone) или Chrome (Android).';
   else if (p.permission === 'denied') body = 'Уведомления запрещены в настройках браузера для этого сайта. Разреши их там и вернись сюда.';
   else { body = 'Новая оценка или домашка — сразу на экран телефона.'; btn = '<button class="btn primary small" data-act="w-push-on">Включить уведомления</button>'; }
   return '<section class="card w-push' + (inSettings ? ' in-set' : '') + '"><div class="w-push-row"><span class="w-push-ic">' + bell + '</span><div><h3>Уведомления</h3><p class="muted">' + body + '</p></div>' +
@@ -443,7 +453,7 @@ function pmgWebBind() {
       case 'w-tab': if (web.tab !== v) { web.tab = v; web.enter = true; history.replaceState(null, '', '#' + v); if (v === 'friends') pmgFriendsLoad(); if (v === 'me') pmgGameMsg('devices'); if (v === 'homework') pmgGameMsg('action', { key: 'sched:' + pmgIso(new Date()) }); pmgWebRender(); window.scrollTo(0, 0); } else window.scrollTo({ top: 0, behavior: 'smooth' }); return;
       case 'tab': { const k = ['friends', 'pass', 'profile', 'homework'].includes(t.dataset.tab) ? t.dataset.tab : 'home'; web.tab = k; web.enter = true; history.replaceState(null, '', '#' + k); if (k === 'friends') pmgFriendsLoad(); pmgWebRender(); window.scrollTo(0, 0); return; }
       case 'w-sync': pmgWebSync(); return;
-      case 'w-push-on': { t.disabled = true; const r = await pmgPushSubscribe().catch((e) => ({ ok: false, error: e.message })); web.push = await pmgPushState(); pmgToast(r.ok ? 'Готово — сейчас придёт проверочное уведомление' : r.error === 'denied' ? 'Ты не разрешил уведомления' : r.error === 'ios_home' ? 'Сначала добавь Gradient на экран «Домой»' : 'Не получилось: ' + r.error); pmgWebRender(true); return; }
+      case 'w-push-on': { t.disabled = true; const r = await pmgPushSubscribe().catch((e) => ({ ok: false, error: e.message })); web.push = await pmgPushState(); pmgToast(r.ok ? 'Готово — сейчас придёт проверочное уведомление' : r.error === 'denied' ? 'Ты не разрешил уведомления' : r.error === 'ios_home' ? 'Сначала добавь Gradely на экран «Домой»' : 'Не получилось: ' + r.error); pmgWebRender(true); return; }
       case 'w-push-off': await pmgPushUnsubscribe(); web.push = await pmgPushState(); pmgToast('Уведомления выключены'); pmgWebRender(true); return;
       case 'w-push-test': { const r = await pmgPushTest().catch(() => null); pmgToast(r && r.sent ? 'Отправлено — смотри уведомления' : 'Не дошло. Выключи и включи уведомления заново'); return; }
       case 'w-push-hide': web.pushHide = true; await pmgStorageSet({ pmg_push_hide: true }); pmgWebRender(true); return;
@@ -504,7 +514,7 @@ async function pmgWebShareReport() {
   const c = pmg.reportCanvas; if (!c) return;
   const blob = await new Promise((r) => c.toBlob(r, 'image/png'));
   const file = new File([blob], pmgReportFileName(), { type: 'image/png' });
-  try { if (navigator.canShare && navigator.canShare({ files: [file] })) await navigator.share({ files: [file], title: 'Итоги Gradient' }); else pmgSaveReport(); }
+  try { if (navigator.canShare && navigator.canShare({ files: [file] })) await navigator.share({ files: [file], title: 'Итоги Gradely' }); else pmgSaveReport(); }
   catch (_) { /* отменили */ }
 }
 
